@@ -1,0 +1,18 @@
+BEGIN;
+CREATE INDEX "audit_logs_actor_id_idx" ON public.audit_logs(actor_id);
+CREATE INDEX "audit_logs_device_id_idx" ON public.audit_logs(device_id);
+CREATE INDEX "devices_user_id_idx" ON public.devices(user_id);
+CREATE INDEX "member_department_periods_created_by_id_idx" ON public.member_department_periods(created_by_id);
+CREATE INDEX "notifications_department_id_idx" ON public.notifications(department_id);
+CREATE INDEX "objectives_created_by_id_idx" ON public.objectives(created_by_id);
+CREATE INDEX "payment_revisions_actor_id_idx" ON public.payment_revisions(actor_id);
+CREATE INDEX "payment_revisions_device_id_actor_id_idx" ON public.payment_revisions(device_id,actor_id);
+CREATE INDEX "payment_revisions_replacement_payment_id_idx" ON public.payment_revisions(replacement_payment_id);
+CREATE INDEX "payments_affiliation_id_member_id_department_id_idx" ON public.payments(affiliation_id,member_id,department_id);
+CREATE INDEX "payments_collected_by_id_idx" ON public.payments(collected_by_id);
+CREATE INDEX "payments_collection_week_id_objective_id_idx" ON public.payments(collection_week_id,objective_id);
+CREATE INDEX "payments_objective_id_idx" ON public.payments(objective_id);
+CREATE INDEX "payments_origin_device_id_collected_by_id_idx" ON public.payments(origin_device_id,collected_by_id);
+CREATE INDEX "sessions_device_id_user_id_idx" ON public.sessions(device_id,user_id);
+CREATE INDEX "sync_operations_device_id_user_id_idx" ON public.sync_operations(device_id,user_id);
+COMMIT;

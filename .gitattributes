@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.svg text
+*.png binary
+*.jpg binary
+*.woff2 binary
+# Conserver le document fourni octet pour octet et ses sauts de ligne Markdown.
+cahier_des_charges.md -text whitespace=-blank-at-eol

@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+package-lock.json
+cahier_des_charges.md
+documentation
+playwright-report
+test-results
+backend/src/generated
+.vscode/settings.json

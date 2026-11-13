@@ -1,0 +1,147 @@
+erDiagram
+    Department o|--o{ User : affecte
+    Department ||--o{ Member : contient
+    Member ||--|{ MemberDepartmentPeriod : possede
+    Department ||--o{ MemberDepartmentPeriod : accueille
+    MemberDepartmentPeriod ||--o{ Payment : garantit
+    Member ||--o{ Payment : verse
+    Department ||--o{ Payment : conserve
+    User ||--o{ Payment : encaisse
+    Objective ||--o{ CollectionWeek : organise
+    CollectionWeek ||--o{ Payment : rattache
+    Objective ||--o{ Payment : comptabilise
+    Payment ||--o{ PaymentRevision : conserve
+    PaymentRevision ||--o| PaymentAdjustment : justifie
+    Payment ||--o{ PaymentAdjustment : ajuste
+    User ||--o{ Device : possede
+    User ||--o{ Session : ouvre
+    Device ||--o{ Session : heberge
+    Session ||--o{ RefreshToken : renouvelle
+    Device ||--o{ Payment : origine
+    User ||--o{ SyncOperation : soumet
+    Department ||--o{ SyncOperation : delimite
+    Device ||--o{ SyncOperation : transmet
+    Department o|--o| SyncScope : delimite
+    SyncScope ||--o{ SyncChange : ordonne
+    User ||--o{ Notification : recoit
+    User o|--o{ AuditLog : agit
+    Department o|--o{ AuditLog : contextualise
+    User {
+        uuid id PK
+        string loginNormalized UK
+        uuid departmentId FK
+        string passwordHash
+        string role
+        string status
+    }
+    Department {
+        uuid id PK
+        string name
+        string status
+        int version
+    }
+    Member {
+        uuid id PK
+        string memberNumber UK
+        uuid departmentId FK
+        string status
+        int version
+    }
+    MemberDepartmentPeriod {
+        uuid id PK
+        uuid memberId FK
+        uuid departmentId FK
+        datetime startsAt
+        datetime endsAt
+    }
+    Objective {
+        uuid id PK
+        bigint targetAmount
+        date startsOn
+        date endsOn
+        string status
+    }
+    CollectionWeek {
+        uuid id PK
+        uuid objectiveId FK
+        int number
+        date startsOn
+        date endsOn
+    }
+    Payment {
+        uuid id PK
+        uuid memberId FK
+        uuid departmentId FK
+        uuid affiliationId FK
+        uuid collectionWeekId FK
+        uuid objectiveId FK
+        bigint originalAmount
+        string idempotencyKey UK
+    }
+    PaymentRevision {
+        uuid id PK
+        uuid paymentId FK
+        uuid actorId FK
+        int revisionNumber
+        string reason
+    }
+    PaymentAdjustment {
+        uuid id PK
+        uuid paymentId FK
+        uuid revisionId FK, UK
+        bigint deltaAmount
+    }
+    Device {
+        uuid id PK
+        uuid userId FK
+        string status
+    }
+    Session {
+        uuid id PK
+        uuid userId FK
+        uuid deviceId FK
+        datetime expiresAt
+        datetime revokedAt
+    }
+    RefreshToken {
+        uuid id PK
+        uuid sessionId FK
+        string tokenHash UK
+        datetime consumedAt
+        datetime expiresAt
+    }
+    SyncOperation {
+        uuid id PK
+        uuid userId FK
+        uuid departmentId FK
+        uuid deviceId FK
+        string requestHash
+        string status
+    }
+    SyncScope {
+        uuid id PK
+        string key UK
+        uuid departmentId FK, UK
+        bigint sequence
+        int generation
+    }
+    SyncChange {
+        uuid id PK
+        uuid scopeId FK
+        bigint sequence
+        uuid entityId
+        string changeType
+    }
+    Notification {
+        uuid id PK
+        uuid recipientId FK
+        string eventKey
+        datetime readAt
+    }
+    AuditLog {
+        uuid id PK
+        uuid actorId FK
+        uuid departmentId FK
+        string action
+        datetime occurredAt
+    }

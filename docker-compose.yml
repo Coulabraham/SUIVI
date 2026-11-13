@@ -1,0 +1,26 @@
+name: suivi
+
+services:
+  db:
+    image: postgres:18.7-bookworm
+    environment:
+      POSTGRES_DB: suivi_dev
+      TZ: UTC
+      POSTGRES_USER: suivi_bootstrap
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Exécuter npm run setup:env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Secret applicatif manquant}
+      POSTGRES_MIGRATION_PASSWORD: ${POSTGRES_MIGRATION_PASSWORD:?Secret de migration manquant}
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - suivi_postgres:/var/lib/postgresql
+      - ./scripts/docker-init-db.sh:/docker-entrypoint-initdb.d/01-suivi.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U suivi_app -d suivi_dev']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  suivi_postgres:

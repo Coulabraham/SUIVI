@@ -1,0 +1,43 @@
+flowchart LR
+    adminActor["Super Administrateur"]
+    managerActor["Responsable de département"]
+    subgraph suiviSystem ["SUIVI"]
+        authenticateCase(["Se connecter et changer son mot de passe"])
+        departmentCase(["Gérer les départements"])
+        accountCase(["Créer les responsables, affecter et réinitialiser"])
+        objectiveCase(["Définir et clôturer la campagne globale"])
+        memberCase(["Gérer les membres autorisés"])
+        transferCase(["Autoriser un transfert de membre"])
+        collectCase(["Enregistrer une collecte de son département"])
+        historyCase(["Consulter les paiements autorisés"])
+        reviseCase(["Corriger ou annuler avec justification"])
+        dashboardCase(["Consulter les statistiques autorisées"])
+        globalCase(["Lire la progression globale agrégée"])
+        offlineCase(["Saisir hors ligne et suivre la synchronisation"])
+        conflictCase(["Arbitrer les conflits financiers"])
+        auditCase(["Consulter audit et supervision des appareils"])
+        reportCase(["Exporter les rapports autorisés"])
+        notificationCase(["Consulter ses notifications"])
+    end
+    adminActor --> authenticateCase
+    managerActor --> authenticateCase
+    adminActor --> departmentCase
+    adminActor --> accountCase
+    adminActor --> objectiveCase
+    adminActor --> memberCase
+    managerActor --> memberCase
+    adminActor --> transferCase
+    managerActor --> collectCase
+    adminActor --> historyCase
+    managerActor --> historyCase
+    adminActor --> reviseCase
+    adminActor --> dashboardCase
+    managerActor --> dashboardCase
+    managerActor --> globalCase
+    managerActor --> offlineCase
+    adminActor --> conflictCase
+    adminActor --> auditCase
+    adminActor --> reportCase
+    managerActor -.->|"Droit à confirmer"| reportCase
+    adminActor --> notificationCase
+    managerActor --> notificationCase

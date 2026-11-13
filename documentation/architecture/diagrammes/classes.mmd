@@ -1,0 +1,125 @@
+classDiagram
+    direction LR
+    class User {
+        UUID id
+        string loginNormalized
+        Role role
+        AccountStatus status
+        boolean mustChangePassword
+        int authzVersion
+    }
+    class Department {
+        UUID id
+        string name
+        DepartmentStatus status
+        int version
+    }
+    class Member {
+        UUID id
+        string memberNumber
+        MemberStatus status
+        int version
+        archive()
+        reactivate()
+    }
+    class MemberDepartmentPeriod {
+        UUID id
+        datetime startsAt
+        datetime endsAt
+    }
+    class Objective {
+        UUID id
+        bigint targetAmount
+        date startsOn
+        date endsOn
+        CampaignStatus status
+    }
+    class CollectionWeek {
+        UUID id
+        int number
+        date startsOn
+        date endsOn
+        date collectionOn
+    }
+    class Payment {
+        UUID id
+        bigint originalAmount
+        string idempotencyKey
+        PaymentStatus status
+        int version
+        effectiveAmount() bigint
+    }
+    class PaymentRevision {
+        UUID id
+        int revisionNumber
+        string reason
+        json beforeValue
+        json afterValue
+    }
+    class PaymentAdjustment {
+        UUID id
+        bigint deltaAmount
+    }
+    class Device {
+        UUID id
+        string label
+        DeviceStatus status
+    }
+    class Session {
+        UUID id
+        datetime expiresAt
+        datetime revokedAt
+    }
+    class RefreshToken {
+        UUID id
+        string tokenHash
+        datetime consumedAt
+        datetime expiresAt
+    }
+    class SyncOperation {
+        UUID id
+        OperationType type
+        string requestHash
+        OperationStatus status
+    }
+    class SyncScope {
+        UUID id
+        string key
+        bigint sequence
+        int generation
+    }
+    class SyncChange {
+        UUID id
+        bigint sequence
+        UUID entityId
+        string changeType
+    }
+    class Notification {
+        UUID id
+        string eventKey
+        datetime readAt
+    }
+    class AuditLog {
+        UUID id
+        string action
+        string outcome
+        datetime occurredAt
+    }
+    Department "0..1" -- "0..*" User : affectation de compte
+    Department "1" -- "0..*" Member : département courant
+    Member "1" -- "1..*" MemberDepartmentPeriod : historique
+    Department "1" -- "0..*" MemberDepartmentPeriod : accueille
+    MemberDepartmentPeriod "1" -- "0..*" Payment : département historique
+    Member "1" -- "0..*" Payment : verse
+    User "1" -- "0..*" Payment : enregistre
+    Objective "1" -- "0..*" CollectionWeek : calendrier
+    CollectionWeek "1" -- "0..*" Payment : rattache
+    Payment "1" -- "0..*" PaymentRevision : journal
+    PaymentRevision "1" -- "0..1" PaymentAdjustment : delta monétaire
+    User "1" -- "0..*" Device : possède
+    Device "1" -- "0..*" Session : héberge
+    Session "1" -- "0..*" RefreshToken : rotation
+    Device "1" -- "0..*" SyncOperation : origine
+    SyncScope "1" -- "0..*" SyncChange : ordonne
+    User "1" -- "0..*" Notification : destinataire
+    User "0..1" -- "0..*" AuditLog : acteur

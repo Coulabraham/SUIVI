@@ -1,0 +1,40 @@
+flowchart LR
+    subgraph client ["Appareil du responsable ou de l'administrateur"]
+        reactApp["Interface React et navigation par rôle"]
+        clientCommands["Commandes locales et projections provisoires"]
+        dexieDb[("IndexedDB Dexie : données et file durable")]
+        syncEngine["Moteur de synchronisation partagé"]
+        serviceWorker["Service Worker Workbox et Background Sync"]
+        staticCache[("Cache des ressources statiques")]
+    end
+    subgraph gateway ["Même origine HTTPS"]
+        webGateway["Fichiers Vite et accès API versionnée"]
+    end
+    subgraph service ["Backend NestJS modulaire"]
+        restApi["Contrôleurs REST et DTO validés"]
+        securityGuards["Passport JWT, session, rôle et périmètre"]
+        domainServices["Membres, départements, comptes, campagnes et paiements"]
+        syncService["Lots, idempotence, conflits et changements"]
+        reportService["Rapports autorisés ExcelJS, PDFKit et CSV"]
+        transactionUnit["Prisma : transactions, audit et notifications"]
+    end
+    subgraph datastore ["Persistance centrale"]
+        postgresDb[("PostgreSQL : données, reçus et journaux")]
+    end
+    reactApp -->|"Saisie responsable"| clientCommands
+    clientCommands -->|"Écriture atomique"| dexieDb
+    reactApp -->|"Lecture locale"| dexieDb
+    syncEngine -->|"File et reçus"| dexieDb
+    serviceWorker -->|"Réveil et reprise"| syncEngine
+    serviceWorker -->|"Shell et ressources"| staticCache
+    reactApp -->|"Axios : lectures et administration"| webGateway
+    syncEngine -->|"Axios : push et pull"| webGateway
+    webGateway -->|"Route /api/v1"| restApi
+    restApi --> securityGuards
+    securityGuards --> domainServices
+    securityGuards --> syncService
+    securityGuards --> reportService
+    syncService -->|"Même logique métier"| domainServices
+    domainServices --> transactionUnit
+    reportService -->|"Lecture cohérente"| transactionUnit
+    transactionUnit -->|"SQL paramétré et contraintes"| postgresDb
