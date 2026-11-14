@@ -1,6 +1,6 @@
 # Avancement de SUIVI
 
-Dernière mise à jour : 13 novembre 2026.
+Dernière mise à jour : 14 novembre 2026.
 
 ## État général
 
@@ -11,7 +11,7 @@ Dernière mise à jour : 13 novembre 2026.
 | 3 — Base de données | Socle terminé : 17 modèles ; cinq migrations actuelles appliquées et client Prisma opérationnel |
 | 4 — Backend | Périmètre métier des phases 4 à 10 du cahier joint testé ; synchronisation et rapports restent à venir |
 | 5 — Frontend | Pages métier reliées aux API ; recette Chrome desktop/mobile réussie dans ce périmètre |
-| 6 — PWA et offline | Non commencée |
+| 6 — PWA et offline | En cours : première partie installable et fondations du stockage testées ; données privées hors connexion non activées |
 | 7 — Tests et sécurité | Qualification globale à venir ; tests progressifs du socle et de la base exécutés |
 | 8 — Finalisation | Non commencée |
 
@@ -185,3 +185,12 @@ Les restrictions métier ouvertes, l'absence de mode hors ligne et les travaux r
 - **Bilan final : 113 tests réussis** (18 Jest, 13 Vitest/RTL, 76 PostgreSQL/API et 6 Playwright). Les 76 cas de base/API ont repassé ; les six parcours navigateur ont ensuite réussi en reprise ciblée. Écrans desktop/mobile inspectés, schéma et cinq migrations vérifiés, aucun diagnostic d'éditeur.
 - Données de suivi_dev inchangées après migration : aucune donnée métier ni notification ajoutée, un audit préexistant conservé. OpenAPI : 42 opérations, 44 schémas ; sept nouvelles opérations protégées.
 - Prochaine étape : phase 11 PWA puis phase 12 synchronisation. Q02/Q03/Q11/Q18 restent à valider pour l'autorisation hors ligne et les appareils ; aucun choix métier manquant n'a été présumé.
+
+## Phase 11 — installation et stockage local, première partie
+
+- Manifest, icônes, worker Workbox, cache statique fermé, écran d'installation et mise à jour sur confirmation implémentés et testés sur Chrome desktop/mobile.
+- Dexie utilisé pour le nom d'appareil réellement transmis aux prochaines connexions. Primitives de chiffrement et de file atomique ajoutées et soumises aux tests.
+- Aucun membre ou paiement privé téléchargé dans IndexedDB ; aucune synchronisation réseau ni validation financière hors ligne annoncée.
+- Q02 (durée autorisée hors ligne) demandée explicitement à l'utilisateur : 72 h, 24 h ou 7 jours. Réponse toujours attendue ; aucun choix automatique.
+- **131 tests distincts réussis** : 18 Jest, 25 Vitest/RTL, 76 PostgreSQL/API et 12 Playwright. Deux anomalies de première recette corrigées : renommage d'appareil connu et rechargement explicite après mise à jour ; la saisie d'un autre onglet reste préservée. La création locale ne peut pas écraser un paiement existant.
+- [Compte rendu de cette livraison](PHASE_11.md). Cette partie ne suffit pas à déclarer la phase 11 entière terminée. Prochaine étape : autorisation hors ligne bornée et préparation chiffrée du département, puis synchronisation par lots.

@@ -28,11 +28,11 @@ let app: INestApplication,
   userId: string,
   token: string,
   refreshCookie: string;
-const signIn = (password = secret, identity = login) =>
+const signIn = (password = secret, identity = login, deviceLabel = 'Test navigateur') =>
   request(app.getHttpServer())
     .post(path + 'auth/login')
     .set('X-SUIVI-CLIENT', 'web')
-    .send({ login: identity, password, deviceId, deviceLabel: 'Test navigateur' });
+    .send({ login: identity, password, deviceId, deviceLabel });
 const cookieOf = (response: { headers: Record<string, unknown> }) => {
   const header = response.headers['set-cookie'];
   const value = Array.isArray(header) ? (header[0] as string | undefined) : undefined;
@@ -130,7 +130,22 @@ describe('Phase 4 — authentification HTTP avec PostgreSQL', () => {
       .get(path + 'auth/profile')
       .auth(token, { type: 'bearer' })
       .expect(401);
-    const response = await signIn(next).expect(200);
+    const knownDevice = await db.prisma.device.findUniqueOrThrow({ where: { id: deviceId } });
+    const response = await signIn(next, login, 'Appareil renomme pour la recette').expect(200);
+    const renamedDevice = await db.prisma.device.findUniqueOrThrow({ where: { id: deviceId } });
+    expect(renamedDevice.label).toBe('Appareil renomme pour la recette');
+    expect(renamedDevice.createdAt).toEqual(knownDevice.createdAt);
+    expect(renamedDevice.userId).toBe(knownDevice.userId);
+    expect(await db.prisma.device.count({ where: { userId } })).toBe(1);
+    const renamedAudit = await db.prisma.auditLog.findFirstOrThrow({
+      where: {
+        actorId: userId,
+        deviceId,
+        action: 'LOGIN_SUCCEEDED',
+        afterValue: { path: ['deviceLabel'], equals: 'Appareil renomme pour la recette' },
+      },
+    });
+    expect(renamedAudit.beforeValue).toEqual({ deviceLabel: 'Test navigateur' });
     token = response.body.data.accessToken;
     refreshCookie = cookieOf(response).split(';')[0]!;
     await request(app.getHttpServer())

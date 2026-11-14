@@ -8,6 +8,13 @@ import { LoginPage, ProfilePage } from '../features/authentication/AuthPages';
 import { useAuthStore } from '../stores/auth';
 import { api, restoreSession, errorMessage } from '../services/api';
 import { useUnread } from '../features/notifications/useUnread';
+import { usePwaStore } from '../pwa/client';
+const PwaUpdateNotice = lazy(() =>
+  import('../pwa/PwaUpdateNotice').then((m) => ({ default: m.PwaUpdateNotice })),
+);
+const InstallationPage = lazy(() =>
+  import('../pwa/InstallationPage').then((m) => ({ default: m.InstallationPage })),
+);
 const NotificationsPage = lazy(() =>
   import('../features/notifications/NotificationsPage').then((m) => ({
     default: m.NotificationsPage,
@@ -67,6 +74,7 @@ export function App() {
   const client = useQueryClient();
   const [logoutError, setLogoutError] = useState('');
   const unread = useUnread();
+  const updateAvailable = usePwaStore((state) => state.updateAvailable);
   const navigation = user
     ? [
         { to: '/tableau-de-bord', text: 'Tableau de bord', icon: 'grid' as const },
@@ -99,16 +107,19 @@ export function App() {
           : []),
         { to: '/profil', text: 'Mon profil', icon: 'grid' as const },
         { to: '/diagnostic', text: 'Diagnostic', icon: 'pulse' as const },
+        { to: '/installation', text: 'Installer SUIVI', icon: 'grid' as const },
       ]
     : [
         { to: '/', text: 'Vue d’ensemble', icon: 'grid' as const },
         { to: '/connexion', text: 'Connexion', icon: 'grid' as const },
         { to: '/diagnostic', text: 'Diagnostic', icon: 'pulse' as const },
+        { to: '/installation', text: 'Installer SUIVI', icon: 'grid' as const },
       ];
   const online = useConnectivityStore((state) => state.online);
   const setOnline = useConnectivityStore((state) => state.setOnline);
   useEffect(() => {
-    void restoreSession().catch(() => useAuthStore.getState().finish());
+    if (navigator.onLine) void restoreSession().catch(() => useAuthStore.getState().finish());
+    else useAuthStore.getState().finish();
     const connected = () => setOnline(true);
     const disconnected = () => setOnline(false);
     window.addEventListener('online', connected);
@@ -214,9 +225,15 @@ export function App() {
           )}
           {!online && (
             <p role="status" className="notice mb-5">
-              Connexion interrompue. Les nouvelles opérations nécessitent actuellement le serveur ;
-              le stockage hors ligne et la synchronisation sont prévus aux phases 11 et 12.
+              L’application est ouverte sans réseau. L’accès hors connexion aux données de votre
+              département n’est pas encore activé. Les nouvelles opérations nécessitent actuellement
+              le serveur.
             </p>
+          )}
+          {updateAvailable && (
+            <Suspense fallback={null}>
+              <PwaUpdateNotice />
+            </Suspense>
           )}
           <Suspense fallback={<p role="status">Chargement de la page…</p>}>
             <Routes>
@@ -234,6 +251,7 @@ export function App() {
                 }
               />
               <Route path="/diagnostic" element={<DiagnosticPage />} />
+              <Route path="/installation" element={<InstallationPage />} />
               <Route path="/connexion" element={<LoginPage />} />
               <Route path="/profil" element={<ProfilePage />} />
               <Route

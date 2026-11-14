@@ -1,6 +1,6 @@
 # Protocole offline-first proposé
 
-Ce document fixe les garanties à implémenter et à tester. Aucun mécanisme n'est encore opérationnel en phase 1.
+Ce document fixe les garanties cibles, initialement proposées en phase 1. La [première partie de phase 11](../PHASE_11.md) implémente le worker statique et les fondations Dexie ; l'autorisation privée hors ligne et le protocole de synchronisation ci-dessous restent à réaliser. Leur description ne vaut pas déclaration de fonctionnement actuel.
 
 ## 1. Données locales et limites
 

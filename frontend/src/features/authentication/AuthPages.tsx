@@ -7,6 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { AuthResult, ApiResponse } from '@suivi/contracts';
 import { api, deviceFor, errorMessage } from '../../services/api';
 import { useAuthStore } from '../../stores/auth';
+import { readDeviceLabel } from '../../pwa/storage';
+import { useConnectivityStore } from '../../stores/connectivity';
 
 const loginSchema = z.object({
   login: z.string().trim().min(1, 'Saisissez votre identifiant.'),
@@ -24,6 +26,7 @@ const passwordSchema = z
   });
 
 export function LoginPage() {
+  const online = useConnectivityStore((state) => state.online);
   const user = useAuthStore((s) => s.user);
   const ready = useAuthStore((s) => s.ready);
   const [params] = useSearchParams();
@@ -56,7 +59,7 @@ export function LoginPage() {
             const r = await api.post<ApiResponse<AuthResult>>('/auth/login', {
               ...values,
               deviceId: deviceFor(values.login),
-              deviceLabel: 'Navigateur SUIVI',
+              deviceLabel: await readDeviceLabel(),
             });
             client.clear();
             accept(r.data.data);
@@ -85,7 +88,16 @@ export function LoginPage() {
             {error}
           </p>
         )}
-        <button className="primary-button justify-center" disabled={form.formState.isSubmitting}>
+        {!online && (
+          <p role="status" className="notice">
+            Une connexion au serveur est nécessaire pour vous authentifier. Les données de votre
+            département restent protégées.
+          </p>
+        )}
+        <button
+          className="primary-button justify-center"
+          disabled={form.formState.isSubmitting || !online}
+        >
           {form.formState.isSubmitting ? 'Connexion…' : 'Se connecter'}
         </button>
       </form>

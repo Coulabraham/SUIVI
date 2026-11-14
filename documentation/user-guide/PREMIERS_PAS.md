@@ -50,6 +50,16 @@ Le Super Administrateur reçoit les alertes métier et de sécurité. Le respons
 
 Dans **Journal d'audit**, le Super Administrateur peut filtrer par action, résultat, département et période, puis consulter les valeurs avant/après et le motif d'une correction. Les heures des filtres sont celles de l'appareil ; les instants transmis au serveur incluent le fuseau. Ce journal est en lecture seule, sans suppression ni modification. Les responsables n'ont pas accès à cet écran.
 
+## Installer l'application sur un appareil
+
+Avec PostgreSQL démarré, lancer `npm.cmd run preview:pwa`, puis ouvrir [l'aperçu installable](http://localhost:4173/installation). Ce mode est distinct du serveur Vite de développement ; vos connexions et réglages de navigateur y sont séparés. Pour un hébergement public, l'installation nécessite une configuration HTTPS de production, encore à qualifier.
+
+Dans **Installer SUIVI**, vérifier que les fichiers de l'application sont prêts. Utiliser le bouton d'installation s'il est proposé ; sinon, passer par le menu du navigateur ou le partage sur iPhone/iPad. Le navigateur peut ne pas proposer cette fonction dans tous les contextes.
+
+Vous pouvez nommer l'appareil : le nom sera transmis lors de vos prochaines connexions. Vous pouvez aussi demander la protection du stockage local ; le navigateur décide de l'accorder. Même accordée, cette protection ne remplace pas une sauvegarde.
+
+Lorsqu'une nouvelle version est prête, terminer les saisies dans tous les onglets puis confirmer la mise à jour. **Plus tard** conserve la version courante et les saisies ; aucun rechargement n'est imposé automatiquement. Les données déjà enregistrées dans IndexedDB ne sont pas supprimées par le changement de worker.
+
 ## Connexion interrompue
 
-Cette livraison couvre les phases 4 à 10 du document joint. Le stockage hors ligne et la synchronisation durable ne sont pas encore implémentés. Le bandeau de connexion l'indique ; une saisie non confirmée n'est jamais présentée comme validée. Consultez [l'avancement](../PROGRESS.md) avant un usage opérationnel.
+L'application préparée peut se rouvrir sans réseau, notamment sur l'écran d'installation. Les phases 4 à 10 restent le périmètre métier en ligne validé : l'accès privé hors connexion et la synchronisation durable ne sont pas encore activés. Le bandeau l'indique ; une saisie non confirmée n'est jamais présentée comme validée. Consultez [l'avancement](../PROGRESS.md) et le [périmètre de phase 11](../PHASE_11.md) avant un usage opérationnel.

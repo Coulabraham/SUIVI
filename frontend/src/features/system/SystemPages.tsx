@@ -141,20 +141,29 @@ export function OverviewPage() {
         </div>
         <div className="grid gap-5 sm:grid-cols-3">
           {[
-            ['01', 'Données et sécurité', 'Comptes, membres et accès contrôlés par département.'],
+            [
+              '01',
+              'Données et sécurité',
+              'Comptes, membres et accès contrôlés par département.',
+              'Disponible en ligne',
+            ],
             [
               '02',
               'Gestion des encaissements',
               'Versements, historique, corrections et objectif global.',
+              'Disponible en ligne',
             ],
             [
               '03',
               'Travail hors connexion',
-              'En préparation : stockage local, synchronisation et conflits.',
+              'Installation et préparation locale ; accès métier hors connexion en cours de développement.',
+              'Installation disponible',
             ],
-          ].map(([number, title, description]) => (
+          ].map(([number, title, description, status]) => (
             <div key={number} className="border-l-2 border-[#dce5d3] pl-4">
-              <span className="text-xs font-semibold text-[#729278]">{number} · À développer</span>
+              <span className="text-xs font-semibold text-[#729278]">
+                {number} · {status}
+              </span>
               <h3 className="mt-2 text-sm font-semibold text-stone-800">{title}</h3>
               <p className="mt-2 text-sm leading-6 text-stone-500">{description}</p>
             </div>

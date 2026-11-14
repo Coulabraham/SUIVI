@@ -16,6 +16,7 @@
   "scripts": {
     "setup:env": "node scripts/setup-env.mjs",
     "dev": "npm run build --workspace @suivi/contracts && concurrently --kill-others-on-fail --names api,web \"npm run dev --workspace @suivi/backend\" \"npm run dev --workspace @suivi/frontend\"",
+    "preview:pwa": "npm run build && node scripts/preview-pwa.mjs",
     "build": "npm run build --workspace @suivi/contracts && npm run build --workspace @suivi/backend && npm run build --workspace @suivi/frontend",
     "typecheck": "npm run build --workspace @suivi/contracts && tsc -p tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
@@ -60,6 +61,9 @@
     "argon2@0.45.2": true
   },
   "overrides": {
+    "workbox-build": {
+      "glob": "14.0.6"
+    },
     "glob@>=9.0.0 <=14.0.1": "14.0.6",
     "minimatch@>=7.0.0 <11.0.1": "11.0.8"
   }

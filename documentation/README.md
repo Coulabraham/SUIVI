@@ -1,8 +1,10 @@
 # SUIVI — dossier de conception
 
-Mise à jour : 13 novembre 2026. Statut : **modules métier des phases 4 à 10 du cahier joint implémentés et testés ; 113 tests réussis** ; résultats de qualification dans le [compte rendu actuel](PHASE_10.md).
+Mise à jour : 14 novembre 2026. Statut : **modules métier des phases 4 à 10 implémentés et première partie installable de phase 11 validée** ; qualification actuelle : 131 tests réussis. Voir le [compte rendu actuel](PHASE_11.md) et le [bilan métier précédent](PHASE_10.md).
 
 Ce dossier décrit l'architecture cible et suit sa réalisation. Les fonctionnalités métier en ligne sont reliées aux API. Le mode hors ligne et les modules des phases 11 à 14 restent à développer. Les tests ne constituent pas à eux seuls une qualification de production de l'application complète.
+
+La [première partie de phase 11](PHASE_11.md) fournit l'installation PWA et prépare le stockage local chiffré. L'autorisation et les données privées hors connexion restent non activées ; la durée Q02 doit être choisie explicitement.
 
 ## Lecture recommandée
 

@@ -19,6 +19,7 @@ Un premier accès émet une session limitée aux actions profil/changement/déco
 - Le JWT et le profil courant sont dans Zustand en mémoire. Le seul identifiant technique d'appareil est conservé pour les connexions ultérieures ; ni JWT ni refresh ni secret ne sont placés dans localStorage. Web Locks sérialise les rotations entre onglets lorsque disponible ; la déduplication en mémoire couvre les appels simultanés d'un onglet.
 - Le cache Query est effacé au changement d'identité, changement de mot de passe et déconnexion confirmée. L'API envoie Cache-Control no-store. Une déconnexion dont le serveur n'a pas confirmé la révocation affiche son erreur.
 - Les clés Query comprennent le périmètre de l'identité. Si le cookie renouvelé appartient à une autre identité ou un autre rôle/département, le cache est purgé et une reconnexion est imposée ; la requête précédente n'est pas rejouée sous les nouveaux droits. Les révocations à la déconnexion et les réutilisations de refresh sont auditées.
+- Le nom local d'appareil peut être choisi sur l'écran d'installation. Une connexion réussie actualise ce libellé pour un appareil connu, sans changer son UUID ni son propriétaire ; les anciennes/nouvelles valeurs sont conservées dans l'audit de connexion. Une connexion refusée n'actualise pas le libellé. Ce nom reste un repère humain, sans valeur d'attestation matérielle.
 
 ## Contrôle des ressources et transactions
 
@@ -41,5 +42,7 @@ Une connexion depuis un nouvel UUID d'appareil alors que le compte possède déj
 La limitation des tentatives est en mémoire d'un processus et ne remplace pas la qualification multi-instance de la phase 14. Les identités d'appareils sont des références de session, sans prétention d'attestation matérielle. En l'absence de Web Locks, la coordination de plusieurs onglets peut conduire à une révocation conservatrice si un refresh est réutilisé.
 
 Le déploiement HTTPS, la configuration du reverse proxy, les sauvegardes/restaurations de production, les politiques de rétention, la supervision et la revue globale restent à qualifier avant production. Les sessions hors ligne, la protection IndexedDB et la synchronisation restent dans les phases 11 et 12 ; aucun JWT courant n'est présenté comme une validation serveur d'un événement déconnecté.
+
+La [première partie de phase 11](../PHASE_11.md) ajoute un worker limité aux fichiers statiques et des primitives de stockage chiffré testées. L'utilisation actuelle de Dexie ne contient que des réglages d'appareil. L'accès privé hors ligne, sa durée, le cycle de déverrouillage et les opérations métier restent non activés.
 
 Références : [NestJS Passport/JWT](https://docs.nestjs.com/recipes/passport), [OWASP Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).

@@ -4,6 +4,8 @@ Application de gestion des cotisations et encaissements hebdomadaires en FCFA.
 
 **État : phases 4 à 10 du cahier joint implémentées et testées ; 113 tests réussis.** Connexion, départements, responsables, membres, encaissements, objectifs, tableaux de bord, notifications internes et consultation d'audit utilisent PostgreSQL réel. Voir les comptes rendus [phases 4 à 9](documentation/PHASES_4_9.md), [phase 10](documentation/PHASE_10.md) et le [guide de prise en main](documentation/user-guide/PREMIERS_PAS.md). Le mode hors ligne, la synchronisation et les exports restent aux phases suivantes. Aucun compte réel ou jeu de données de démonstration n'est créé automatiquement.
 
+**Phase 11 en cours :** première partie installable validée, avec fondations IndexedDB chiffrées et mise à jour sur confirmation. La qualification actuelle comprend **131 tests réussis** (18 Jest, 25 Vitest/RTL, 76 PostgreSQL/API et 12 Playwright). L'accès privé aux membres et encaissements hors connexion reste non activé en attente de la durée d'autorisation. Voir le [périmètre exact et les limites](documentation/PHASE_11.md).
+
 ## Prérequis
 
 - Windows 11 pour le script PostgreSQL natif fourni ; Node.js **26.13.x**, npm **11.x**, Git.
@@ -68,15 +70,19 @@ Le frontend transmet les requêtes /api au backend. Un contrôle de disponibilit
 
 Le client Prisma est généré automatiquement avant compilation, tests et contrôle de types du backend. Le build frontend force NODE_ENV=production, même si le terminal hérite d'une configuration de développement.
 
-Pour un build puis un démarrage sans surveillance :
+### Aperçu PWA installable
+
+Le service worker est désactivé sur le serveur Vite de développement. Pour tester la version compilée et son installation :
 
 ```powershell
-npm.cmd run build
-$env:FRONTEND_ORIGIN = 'http://127.0.0.1:4173'
-npm.cmd run start --workspace @suivi/backend
-# Dans un autre terminal :
-npm.cmd run preview --workspace @suivi/frontend -- --port 4173
+npm.cmd run preview:pwa
 ```
+
+Ouvrir <http://localhost:4173/installation>. Cette commande compile les packages puis démarre une API locale sur 127.0.0.1:3001 et le frontend compilé sur localhost:4173, avec une origine d'authentification correspondante. PostgreSQL doit déjà tourner ; aucun seed ni compte n'est créé. Ctrl+C arrête les deux services de l'aperçu. Les ports occupés provoquent une erreur explicite. La session et IndexedDB sont distincts de ceux du serveur de développement sur 127.0.0.1:5173.
+
+La préparation télécharge uniquement les fichiers statiques de l'application. Une nouvelle version attend une confirmation avant rechargement ; sauvegarder les saisies dans tous les onglets. Les réponses API ne sont jamais mises en cache par le worker. Le [bilan de phase 11](documentation/PHASE_11.md) précise ce qui reste nécessaire avant les opérations métier hors ligne.
+
+La tâche VS Code « SUIVI: aperçu PWA (build existant) » démarre les deux services à partir du dernier build, sans le reconstruire. Les tâches sont définies dans [tasks.json](.vscode/tasks.json).
 
 Le serveur preview sert uniquement à vérifier le build local. Le déploiement de production sera documenté avec HTTPS, reverse proxy, migrations et sauvegardes aux phases suivantes.
 
@@ -98,7 +104,7 @@ npm.cmd run api:openapi
 - test:database : quatre bases PostgreSQL temporaires distinctes, migrations, bootstrap, démonstration, intégrité/concurrence, parcours HTTP métier et événements/notifications/audit. Aucune écriture de test dans suivi_dev. Les fichiers temporaires sont conservés et l'instance est arrêtée à la fin.
 - api:openapi : génération de la description des routes effectivement implémentées dans [openapi.json](documentation/api/openapi.json).
 
-Les tests HTTP couvrent l'authentification, les permissions, les membres, les paiements, les objectifs, les notifications et l'audit ; les comptes rendus [métier](documentation/PHASES_4_9.md) et [phase 10](documentation/PHASE_10.md) précisent les résultats. Les tests de fonctionnement hors ligne et de synchronisation restent à réaliser avec leurs modules. Le [compte rendu de phase 3](documentation/database/PHASE_3.md) conserve les preuves SQL initiales.
+Les tests HTTP couvrent l'authentification, les permissions, les membres, les paiements, les objectifs, les notifications et l'audit ; les comptes rendus [métier](documentation/PHASES_4_9.md) et [phase 10](documentation/PHASE_10.md) précisent les résultats. Les tests PWA de [phase 11](documentation/PHASE_11.md) couvrent le manifest, les icônes, la réouverture sans réseau, IndexedDB et les mises à jour explicites. Les tests d'accès privé hors ligne et de synchronisation restent à réaliser avec leurs modules. Le [compte rendu de phase 3](documentation/database/PHASE_3.md) conserve les preuves SQL initiales.
 
 ## Migrations et sauvegarde locale
 

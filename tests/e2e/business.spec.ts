@@ -66,8 +66,16 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   const login = 'recette.' + suffix;
   const member = 'Membre ' + suffix;
   const campaign = 'Campagne ' + suffix;
+  const deviceLabel = 'Appareil de recette ' + suffix;
   await signIn(page, adminLogin, password);
   await expect(page.getByRole('heading', { name: 'Vue d’ensemble', exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Installer SUIVI', exact: true }).click();
+  await page.getByLabel('Nom de l’appareil').fill(deviceLabel);
+  await page.getByRole('button', { name: 'Enregistrer le nom', exact: true }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'nom de l’appareil est enregistré' }),
+  ).toBeVisible();
 
   await page.getByRole('link', { name: 'Départements', exact: true }).click();
   await page.getByRole('button', { name: 'Ajouter un département' }).click();
@@ -219,6 +227,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
     .click();
   await expect(page.getByRole('dialog')).toContainText('12000');
   await expect(page.getByRole('dialog')).toContainText('9000');
+  await expect(page.getByRole('dialog')).toContainText(deviceLabel);
   await expect(page.getByRole('dialog')).toContainText('Montant vérifié sur le reçu de recette');
   const auditWidth = await page.evaluate(() => ({
     viewport: innerWidth,

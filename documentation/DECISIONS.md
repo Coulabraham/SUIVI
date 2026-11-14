@@ -69,6 +69,19 @@ Date initiale : 12 novembre 2026. L'utilisateur a validé la conception généra
 | ADR-44 | Polling interne toutes les trente secondes, sans push externe | Réponse au besoin de notifications internes ; Background Sync et producteur réel SYNC_FAILED attendent la phase 12 ; aucun rétro-remplissage d'alertes historiques |
 | ADR-45 | Quatrième base isolée dédiée aux événements, cinquième avec navigateur | Complète ADR-35 ; qualification de diffusion, rollback, périmètres, immutabilité et réaffectation sans données de test dans suivi_dev |
 
+## Phase 11 — installation et stockage
+
+| ID | Décision | Motif et limites |
+|---|---|---|
+| ADR-46 | Vite PWA 2.0.0, injectManifest et Workbox 7.4.1 | Compatibilité Vite 8 déclarée par le registre ; worker propre au projet sans file de requêtes brutes |
+| ADR-47 | Préchargement des seuls fichiers statiques et liste fermée de navigations React | Toute route API reste réseau uniquement ; ni réponse privée en Cache Storage, ni shell HTML à la place d'une API |
+| ADR-48 | Nouvelle version en attente, confirmation de rechargement et possibilité de report | Préserver les saisies ; aucun skipWaiting ou rechargement spontané ; formulaires ouverts vérifiés avant application |
+| ADR-49 | Dexie chargé à la demande ; base stable suivi-local avec version de schéma distincte | Éviter de charger le SDK dans le bundle initial ; conserver les futurs journaux lors des migrations ; persistance décidée par le navigateur |
+| ADR-50 | Enveloppes AES-GCM et file projection/commande atomique, inactives pour les données réelles tant que l'autorisation manque | Préparer les garanties testables sans confondre cache technique, autorisation locale et validation serveur ; KDF Web Crypto, clé non extractible en mémoire |
+| ADR-51 | Aperçu compilé sur localhost:4173, API locale sur 127.0.0.1:3001 | Vite dev ne fournit pas les garanties du worker de production ; séparer l'origine et les cookies du développement 127.0.0.1:5173 |
+| ADR-52 | Rechargement suivi par une demande explicite du client, avec observation native de controllerchange | Le SDK ne déclenchait pas de rechargement lors d'une mise à jour sur la toute première page ; un autre onglet doit conserver sa saisie et demander son propre rechargement |
+| ADR-53 | Nom d'appareil actualisé seulement après authentification réussie, même UUID/propriétaire et audit avant/après | Relier le réglage Dexie aux prochaines connexions sans recréer un appareil ou étendre des permissions |
+
 ## Décisions métier nécessaires
 
 Les questions Q01 à Q03 ont été présentées pendant l'analyse ; aucune réponse n'a été présumée. Les propositions suivantes permettent de discuter un résultat concret sans inventer les règles définitives.
@@ -116,3 +129,5 @@ Les questions Q01 à Q03 ont été présentées pendant l'analyse ; aucune répo
 | 2026-11-13 | Question groupée sur les règles métier envoyée pendant le développement | Sans réponse explicite à ce stade ; dates/calendrier et validité des accès saisis par l'opérateur, permissions non confirmées conservatrices |
 | 2026-11-13 | Nouvelle demande « continue » | Phase 10 notifications/audit poursuivie ; Q01 à Q19 ne sont pas considérées approuvées par cette seule instruction |
 | 2026-11-13 | Demande de pousser vers github.com/Coulabraham/SUIVI | Publication du code et de la documentation autorisée sur ce dépôt public ; configuration secrète, données locales et résultats temporaires exclus |
+| 2026-11-13 | Nouvelle réponse « ok continue » après publication de la phase 10 | Partie installable et fondations du stockage de phase 11 poursuivies ; question précise sur Q02 présentée, durée toujours non confirmée |
+| 2026-11-14 | Nouvelle instruction « continue » | Qualification reprise, anomalies de nom d'appareil et de cycle de mise à jour corrigées ; aucune réponse à Q02 présumée |

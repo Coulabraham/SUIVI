@@ -17,6 +17,14 @@
       "args": ["run", "dev"],
       "isBackground": true,
       "problemMatcher": []
+    },
+    {
+      "label": "SUIVI: aperçu PWA (build existant)",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/preview-pwa.mjs"],
+      "isBackground": true,
+      "problemMatcher": []
     }
   ]
 }

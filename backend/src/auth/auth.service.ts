@@ -119,7 +119,7 @@ export class AuthService {
           label: dto.deviceLabel,
           lastSeenAt: new Date(),
         },
-        update: { lastSeenAt: new Date() },
+        update: { lastSeenAt: new Date(), label: dto.deviceLabel },
       });
       const created = await tx.session.create({
         data: {
@@ -143,6 +143,12 @@ export class AuthService {
         departmentId: user.departmentId,
         deviceId: dto.deviceId,
         action: 'LOGIN_SUCCEEDED',
+        ...(existing && existing.label !== dto.deviceLabel
+          ? {
+              beforeValue: { deviceLabel: existing.label },
+              afterValue: { deviceLabel: dto.deviceLabel },
+            }
+          : {}),
         entityType: 'Session',
         entityId: created.id,
         outcome: 'SUCCESS',
