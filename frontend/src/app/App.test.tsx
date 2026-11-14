@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { useAuthStore } from '../stores/auth';
 import { getLiveness, getReadiness } from '../features/system/api';
 
 vi.mock('../features/system/api', () => ({ getLiveness: vi.fn(), getReadiness: vi.fn() }));
@@ -11,7 +12,7 @@ const response = {
   data: { service: 'SUIVI' as const, status: 'ok' as const, checkedAt: '2026-11-12T12:00:00.000Z' },
 };
 
-function renderPage(path = '/') {
+function renderPage(path = '/presentation') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <QueryClientProvider client={client}>
@@ -23,6 +24,7 @@ function renderPage(path = '/') {
 }
 
 beforeEach(() => {
+  useAuthStore.getState().clear();
   vi.mocked(getLiveness).mockResolvedValue(response);
   vi.mocked(getReadiness).mockResolvedValue(response);
 });
@@ -60,4 +62,10 @@ describe('Socle de navigation', () => {
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Revenir à l’accueil' })).toHaveAttribute('href', '/');
   });
+});
+it('ouvre le choix de connexion au premier accès', () => {
+  renderPage('/');
+  expect(screen.getByRole('button', { name: 'Administrateur' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Responsable' })).toBeInTheDocument();
+  expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
 });

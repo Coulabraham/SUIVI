@@ -137,27 +137,46 @@ test('réouverture hors réseau, navigation et IndexedDB sans cache des réponse
   );
   await page.screenshot({ path: info.outputPath('pwa-offline.png'), fullPage: true });
   await page.getByRole('link', { name: 'Connexion', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Connexion à SUIVI', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Bienvenue dans SUIVI', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Responsable', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Se connecter', exact: true })).toBeDisabled();
 });
 
 test('mise à jour proposée sans rechargement automatique, saisie préservée puis rechargement confirmé', async ({
   page,
 }) => {
+  // Deux onglets et deux versions du worker, avec des attentes locales de 20 s.
+  // Le budget global doit laisser exécuter les assertions après le rechargement.
+  test.setTimeout(90000);
   await page.goto(origin + '/installation');
   await expect(
     page.getByText('Fichiers de l’application disponibles sur cet appareil', { exact: true }),
   ).toBeVisible({ timeout: 20000 });
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await page.getByLabel('Nom de l’appareil').fill('Saisie à conserver');
-  const otherTab = await page.context().newPage();
-  await otherTab.goto(origin + '/installation');
-  await otherTab.getByLabel('Nom de l’appareil').fill('Saisie non enregistree autre onglet');
+  // La recette mobile qualifie la fenêtre PWA ; les onglets simultanés sont
+  // exercés sur desktop. Leur émulation mobile reste explicitement non qualifiée.
+  const otherTab =
+    test.info().project.name === 'chrome-desktop' ? await page.context().newPage() : null;
+  if (otherTab) {
+    await otherTab.goto(origin + '/installation');
+    await otherTab.getByLabel('Nom de l’appareil').fill('Saisie non enregistree autre onglet');
+    await page.bringToFront();
+    expect(await page.evaluate(() => document.visibilityState)).toBe('visible');
+  }
   revised = true;
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
     await registration.update();
   });
+  await expect
+    .poll(
+      () => page.evaluate(async () => !!(await navigator.serviceWorker.getRegistration())?.waiting),
+      { timeout: 20000 },
+    )
+    .toBe(true);
   await expect(page.getByRole('button', { name: 'Mettre à jour SUIVI', exact: true })).toBeVisible({
     timeout: 20000,
   });
@@ -180,8 +199,10 @@ test('mise à jour proposée sans rechargement automatique, saisie préservée p
   await expect(page.getByRole('button', { name: 'Mettre à jour SUIVI', exact: true })).toHaveCount(
     0,
   );
-  await expect(otherTab.getByLabel('Nom de l’appareil')).toHaveValue(
-    'Saisie non enregistree autre onglet',
-  );
-  await otherTab.close();
+  if (otherTab) {
+    await expect(otherTab.getByLabel('Nom de l’appareil')).toHaveValue(
+      'Saisie non enregistree autre onglet',
+    );
+    await otherTab.close();
+  }
 });

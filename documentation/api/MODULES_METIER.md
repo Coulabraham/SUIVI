@@ -1,4 +1,4 @@
-# API métier implémentée — phases 4 à 10
+# API métier implémentée
 
 Préfixe commun : `/api/v1`. La [description OpenAPI générée](openapi.json) décrit les DTO, paramètres, enveloppes et schémas effectivement exposés. La [conception initiale](CONTRATS.md) décrit aussi des modules futurs : leur présence dans ce document initial ne signifie pas qu'ils sont implémentés.
 
@@ -6,6 +6,8 @@ Préfixe commun : `/api/v1`. La [description OpenAPI générée](openapi.json) d
 
 | Route | Usage |
 |---|---|
+| GET /auth/registration-status | Indique si l'initialisation du premier administrateur est ouverte, sans identité |
+| POST /auth/register-admin | Premier administrateur par e-mail, prénom/nom et mot de passe personnel ; fermé dès qu'un administrateur existe |
 | POST /auth/login | Identifiant, mot de passe, UUID et libellé d'appareil ; retourne JWT et profil public |
 | POST /auth/refresh | Rotation du cookie ; réutilisation révoquant la session |
 | GET /auth/profile | Profil public courant |
@@ -13,6 +15,8 @@ Préfixe commun : `/api/v1`. La [description OpenAPI générée](openapi.json) d
 | POST /auth/logout | Révoque la session courante et efface son cookie |
 
 Les POST d'authentification exigent `X-SUIVI-CLIENT: web`. L'origine du navigateur doit correspondre à FRONTEND_ORIGIN. Le cookie refresh n'est jamais renvoyé dans le JSON. Les appels métier utilisent `Authorization: Bearer <JWT>` ; ils ne s'authentifient pas avec le cookie.
+
+Connexion, inscription et changement de mot de passe acceptent website uniquement absent ou vide. Le portail facultatif de connexion doit correspondre au rôle réel du compte ; il n'attribue aucun droit. Une connexion réussie révoque les sessions précédentes sous verrou PostgreSQL. Voir les [garanties et limites](../CONNEXION_ET_SESSIONS.md).
 
 Pendant le changement initial obligatoire, seuls profil, changement de mot de passe et déconnexion sont ouverts au JWT. Les autres routes restent interdites. Les erreurs de connexion ne distinguent pas compte inexistant, désactivation ou secret erroné.
 

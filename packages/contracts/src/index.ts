@@ -32,6 +32,27 @@ export interface AuthResult {
   accessToken: string;
   user: UserProfile;
 }
+export interface RegistrationStatus {
+  registrationOpen: boolean;
+}
+export type AuthPortal = 'SUPER_ADMIN' | 'MANAGER';
+export interface LoginInput {
+  login: string;
+  password: string;
+  deviceId: string;
+  deviceLabel: string;
+  portal?: AuthPortal;
+  website?: string;
+}
+export interface RegisterAdminInput {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  deviceId: string;
+  deviceLabel: string;
+  website?: string;
+}
 export interface PageResult<T> {
   items: T[];
   total: number;
@@ -157,12 +178,14 @@ export interface AuditDetails extends AuditView {
 }
 export const auditActionLabels: Record<string, string> = {
   ADMIN_BOOTSTRAPPED: 'Premier administrateur créé',
+  ADMIN_REGISTERED: 'Administrateur créé depuis l’application',
   LOGIN_SUCCEEDED: 'Connexion réussie',
   LOGIN_FAILED: 'Connexion refusée',
   UNUSUAL_LOGIN: 'Connexion depuis un nouvel appareil',
   PASSWORD_CHANGED: 'Mot de passe modifié',
   REFRESH_REUSE_DETECTED: 'Réutilisation d’un jeton détectée',
   SESSION_REVOKED: 'Session révoquée',
+  PREVIOUS_SESSIONS_REVOKED: 'Anciennes sessions révoquées',
   ACCESS_RESET: 'Accès réinitialisés',
   DEPARTMENT_CREATED: 'Département créé',
   DEPARTMENT_UPDATED: 'Département modifié',

@@ -41,6 +41,34 @@ function requireReload() {
   }
 }
 
+/** Le worker peut déjà attendre, ou avoir été installé depuis un autre onglet.
+ * Sa détection ne dépend pas seulement des événements relayés par le SDK. */
+export function observeUpdates(
+  value: ServiceWorkerRegistration,
+  hasController = () => !!navigator.serviceWorker.controller,
+) {
+  if (value.waiting) usePwaStore.setState({ updateAvailable: true, error: '' });
+  const observe = () => {
+    const worker = value.installing;
+    if (!worker) return;
+    let completed = worker.state === 'installed' || worker.state === 'activated';
+    const changed = () => {
+      if (worker.state === 'installed' || worker.state === 'activated') completed = true;
+      if (worker.state === 'installed' && hasController())
+        usePwaStore.setState({ updateAvailable: true, error: '' });
+      if (worker.state === 'redundant' && !completed)
+        usePwaStore.setState({
+          error:
+            'La préparation des fichiers de l’application a échoué. Gardez une connexion puis réessayez après rechargement.',
+        });
+    };
+    worker.addEventListener('statechange', changed);
+    changed();
+  };
+  value.addEventListener('updatefound', observe);
+  observe();
+}
+
 export async function startPwa() {
   if (started) return;
   started = true;
@@ -78,21 +106,7 @@ export async function startPwa() {
           void navigator.serviceWorker.ready.then(() =>
             usePwaStore.setState({ offlineReady: true }),
           );
-        const observe = () => {
-          const worker = value?.installing;
-          if (!worker) return;
-          let completed = worker.state === 'installed' || worker.state === 'activated';
-          worker.addEventListener('statechange', () => {
-            if (worker.state === 'installed' || worker.state === 'activated') completed = true;
-            if (worker.state === 'redundant' && !completed)
-              usePwaStore.setState({
-                error:
-                  'La préparation des fichiers de l’application a échoué. Gardez une connexion puis réessayez après rechargement.',
-              });
-          });
-        };
-        value?.addEventListener('updatefound', observe);
-        observe();
+        if (value) observeUpdates(value);
       },
       onRegisterError: () =>
         usePwaStore.setState({

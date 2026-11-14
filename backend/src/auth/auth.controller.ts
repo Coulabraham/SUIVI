@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
-import { ChangePasswordDto, LoginDto } from './auth.dto.js';
+import { ChangePasswordDto, LoginDto, RegisterAdminDto } from './auth.dto.js';
 import { AllowPasswordChange, JwtGuard, PermissionsGuard } from './permissions.js';
 import type { AuthenticatedRequest } from './auth.types.js';
 import {
@@ -22,6 +22,7 @@ import {
   UserDto,
   PasswordChangedDto,
   SessionRevokedDto,
+  RegistrationStatusDto,
 } from '../common/response.dto.js';
 
 @ApiTags('auth')
@@ -54,6 +55,27 @@ export class AuthController {
       sameSite: 'strict',
       path: '/api/v1/auth',
     });
+  }
+
+  @ApiOperation({ summary: 'Indique si le premier administrateur peut être créé' })
+  @ApiEnvelope(RegistrationStatusDto)
+  @Get('registration-status')
+  async registrationStatus() {
+    return { data: await this.auth.registrationStatus() };
+  }
+
+  @ApiOperation({ summary: 'Créer le premier administrateur ; fermé après initialisation' })
+  @ApiEnvelope(AuthResultDto, 201)
+  @Post('register-admin')
+  async registerAdmin(
+    @Body() dto: RegisterAdminDto,
+    @Req() req: Request & { requestId: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    this.checkOrigin(req);
+    const result = await this.auth.registerAdmin(dto, req.ip ?? 'unknown', req.requestId);
+    this.cookie(res, result.refresh, result.expiresAt);
+    return { data: { accessToken: result.accessToken, user: result.user } };
   }
 
   @ApiOperation({ summary: 'Connexion en ligne avec appareil explicite' })

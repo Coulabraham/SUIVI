@@ -8,8 +8,14 @@ if (!adminLogin || !password || !database || !/^\/suivi_test_/.test(new URL(data
   throw new Error('Exécuter npm.cmd run test:e2e : base éphémère et accès de test obligatoires.');
 const signIn = async (page: Page, login: string, secret: string) => {
   await page.goto('/connexion');
-  await page.getByLabel('Identifiant', { exact: true }).fill(login);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(secret);
+  const admin = login === adminLogin;
+  await page
+    .getByRole('button', { name: admin ? 'Administrateur' : 'Responsable', exact: true })
+    .click();
+  await page
+    .getByLabel(admin ? 'Adresse e-mail ou identifiant' : 'Identifiant', { exact: true })
+    .fill(login);
+  await page.getByLabel(admin ? 'Mot de passe' : 'Code de connexion', { exact: true }).fill(secret);
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
 };
 
@@ -132,7 +138,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(password);
   await page.getByLabel('Confirmer le nouveau mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Changer le mot de passe et me reconnecter' }).click();
-  await expect(page.getByRole('heading', { name: 'Connexion à SUIVI' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bienvenue dans SUIVI' })).toBeVisible();
   await signIn(page, login, password);
   await expect(page.getByRole('heading', { name: 'Mon département', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Départements', exact: true })).toHaveCount(0);

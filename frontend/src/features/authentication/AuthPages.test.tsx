@@ -9,10 +9,11 @@ import { useAuthStore } from '../../stores/auth';
 import { api } from '../../services/api';
 
 vi.mock('../../services/api', () => ({
-  api: { post: vi.fn() },
+  api: { post: vi.fn(), get: vi.fn() },
   deviceFor: () => '4aab1b71-1db3-4993-bb08-9646c271fb48',
   errorMessage: (error: unknown) => (error instanceof Error ? error.message : 'Erreur'),
 }));
+vi.mock('../../pwa/storage', () => ({ readDeviceLabel: async () => 'Navigateur de test' }));
 const profile: UserProfile = {
   id: 'f6aaf8ea-8cd0-4522-9725-8191ae456ca6',
   login: 'test.responsable',
@@ -43,6 +44,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   useAuthStore.getState().clear();
   localStorage.clear();
+  vi.mocked(api.get).mockResolvedValue({ data: { data: { registrationOpen: false } } });
 });
 
 describe('Authentification accessible et erreurs explicites', () => {
@@ -50,8 +52,9 @@ describe('Authentification accessible et erreurs explicites', () => {
     vi.mocked(api.post).mockRejectedValue(new Error('Identifiants invalides.'));
     mount('/connexion');
     const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Responsable' }));
     await user.type(screen.getByLabelText('Identifiant'), 'test.responsable');
-    await user.type(screen.getByLabelText('Mot de passe', { exact: true }), 'secret-de-test');
+    await user.type(screen.getByLabelText('Code de connexion', { exact: true }), 'secret-de-test');
     await user.click(screen.getByRole('button', { name: 'Se connecter' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Identifiants invalides.');
     expect(useAuthStore.getState().user).toBeNull();
@@ -63,8 +66,9 @@ describe('Authentification accessible et erreurs explicites', () => {
     });
     mount('/connexion');
     const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Responsable' }));
     await user.type(screen.getByLabelText('Identifiant'), 'test.responsable');
-    await user.type(screen.getByLabelText('Mot de passe', { exact: true }), 'secret-de-test');
+    await user.type(screen.getByLabelText('Code de connexion', { exact: true }), 'secret-de-test');
     await user.click(screen.getByRole('button', { name: 'Se connecter' }));
     expect(
       await screen.findByRole('heading', { name: 'Choisir votre mot de passe' }),
@@ -110,7 +114,103 @@ describe('Authentification accessible et erreurs explicites', () => {
       screen.getByRole('button', { name: 'Changer le mot de passe et me reconnecter' }),
     );
     await waitFor(() => expect(useAuthStore.getState().token).toBeNull());
-    expect(await screen.findByRole('heading', { name: 'Connexion à SUIVI' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Bienvenue dans SUIVI' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Mot de passe modifié.');
+  });
+  it('présente les deux espaces et efface le secret lors du changement de choix', async () => {
+    mount('/connexion');
+    const user = userEvent.setup();
+    expect(screen.queryByLabelText('Identifiant')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Responsable' }));
+    await user.type(screen.getByLabelText('Code de connexion'), 'code-prive');
+    await user.click(screen.getByRole('button', { name: /Changer d’espace/ }));
+    await user.click(screen.getByRole('button', { name: 'Responsable' }));
+    expect(screen.getByLabelText('Code de connexion')).toHaveValue('');
+  });
+  it('invalide un piège rempli avant de transmettre les accès', async () => {
+    mount('/connexion?espace=responsable');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Identifiant'), 'test.responsable');
+    await user.type(screen.getByLabelText('Code de connexion'), 'code-prive');
+    const trap = screen.getByLabelText('Site internet — laisser vide');
+    expect(trap).toHaveAttribute('tabindex', '-1');
+    expect(screen.queryByRole('textbox', { name: /Site internet/ })).toBeNull();
+    await user.type(trap, 'spam');
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('formulaire n’est pas valide');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+  it('connecte un administrateur existant dans le bon espace', async () => {
+    const admin = {
+      ...profile,
+      role: 'SUPER_ADMIN' as const,
+      mustChangePassword: false,
+      departmentId: null,
+    };
+    vi.mocked(api.post).mockResolvedValue({
+      data: { data: { accessToken: 'test-admin', user: admin } },
+    });
+    mount('/connexion?espace=admin');
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByLabelText('Adresse e-mail ou identifiant'),
+      'admin@example.test',
+    );
+    await user.type(screen.getByLabelText('Mot de passe', { exact: true }), 'phrase-privee');
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Tableau de bord du test' }),
+    ).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith(
+      '/auth/login',
+      expect.objectContaining({ portal: 'SUPER_ADMIN', website: '' }),
+    );
+  });
+  it('crée le premier administrateur par API avec son e-mail et ses noms sans envoyer la confirmation', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: { registrationOpen: true } } });
+    vi.mocked(api.post).mockResolvedValue({
+      data: {
+        data: {
+          accessToken: 'test-admin',
+          user: { ...profile, role: 'SUPER_ADMIN', departmentId: null, mustChangePassword: false },
+        },
+      },
+    });
+    mount('/connexion?espace=admin');
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Prénom'), 'Awa');
+    await user.type(screen.getByLabelText('Nom', { exact: true }), 'Kone');
+    await user.type(screen.getByLabelText('Adresse e-mail'), 'awa@example.test');
+    await user.type(screen.getByLabelText('Mot de passe', { exact: true }), 'une-longue-phrase');
+    await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'une-longue-phrase');
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte administrateur' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Tableau de bord du test' }),
+    ).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith('/auth/register-admin', {
+      email: 'awa@example.test',
+      firstName: 'Awa',
+      lastName: 'Kone',
+      password: 'une-longue-phrase',
+      website: '',
+      deviceId: expect.any(String),
+      deviceLabel: 'Navigateur de test',
+    });
+    expect(localStorage.length).toBe(0);
+  });
+  it('rejette une confirmation différente à l’inscription', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: { registrationOpen: true } } });
+    mount('/connexion?espace=admin');
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Prénom'), 'Awa');
+    await user.type(screen.getByLabelText('Nom', { exact: true }), 'Kone');
+    await user.type(screen.getByLabelText('Adresse e-mail'), 'awa@example.test');
+    await user.type(screen.getByLabelText('Mot de passe', { exact: true }), 'une-longue-phrase');
+    await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'autre-phrase');
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte administrateur' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('ne correspondent pas');
+    expect(api.post).not.toHaveBeenCalled();
   });
 });

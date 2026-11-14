@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { Link, NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { useConnectivityStore } from '../stores/connectivity';
@@ -71,6 +71,8 @@ export function App() {
   const user = useAuthStore((state) => state.user);
   const clear = useAuthStore((state) => state.clear);
   const navigate = useNavigate();
+  const location = useLocation();
+  const authScreen = !user && ['/', '/connexion'].includes(location.pathname);
   const client = useQueryClient();
   const [logoutError, setLogoutError] = useState('');
   const unread = useUnread();
@@ -110,7 +112,7 @@ export function App() {
         { to: '/installation', text: 'Installer SUIVI', icon: 'grid' as const },
       ]
     : [
-        { to: '/', text: 'Vue d’ensemble', icon: 'grid' as const },
+        { to: '/presentation', text: 'Présentation', icon: 'grid' as const },
         { to: '/connexion', text: 'Connexion', icon: 'grid' as const },
         { to: '/diagnostic', text: 'Diagnostic', icon: 'pulse' as const },
         { to: '/installation', text: 'Installer SUIVI', icon: 'grid' as const },
@@ -137,58 +139,69 @@ export function App() {
       >
         Aller au contenu
       </a>
-      <aside className="border-b border-stone-200 bg-white px-5 py-5 lg:fixed lg:inset-y-0 lg:w-60 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:px-6 lg:py-8">
-        <Link to="/" aria-label="SUIVI, accueil" className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#123e38] text-xl font-bold text-[#e4edc9]">
-            S
-          </span>
-          <span className="text-2xl font-bold tracking-[.15em] text-[#173d34]">SUIVI</span>
-        </Link>
-        <p className="mt-2 hidden pl-[3.25rem] text-[11px] text-stone-400 lg:block">
-          Chaque contribution compte
-        </p>
-        <p className="mt-12 mb-4 hidden text-[10px] font-semibold tracking-[.17em] text-stone-400 lg:block">
-          VOTRE ESPACE
-        </p>
-        <nav
-          aria-label="Navigation principale"
-          className="mt-5 flex flex-wrap gap-2 lg:mt-0 lg:flex-col"
-        >
-          {navigation.map(({ to, text, icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${isActive ? 'bg-[#edf3e9] text-[#234d3c]' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-800'}`
-              }
-            >
-              <Icon name={icon} />
-              {text}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="mt-8 hidden rounded-xl bg-[#f6f7f2] p-4 lg:block">
-          <p className="text-xs font-semibold text-stone-700">
-            {user ? user.firstName + ' ' + user.lastName : 'Chaque contribution compte'}
+      {!authScreen && (
+        <aside className="border-b border-stone-200 bg-white px-5 py-5 lg:fixed lg:inset-y-0 lg:w-60 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:px-6 lg:py-8">
+          <Link to="/" aria-label="SUIVI, accueil" className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#123e38] text-xl font-bold text-[#e4edc9]">
+              S
+            </span>
+            <span className="text-2xl font-bold tracking-[.15em] text-[#173d34]">SUIVI</span>
+          </Link>
+          <p className="mt-2 hidden pl-[3.25rem] text-[11px] text-stone-400 lg:block">
+            Chaque contribution compte
           </p>
-          <p className="mt-2 text-xs leading-5 text-stone-500">
-            {user?.role === 'SUPER_ADMIN'
-              ? 'Super Administrateur'
-              : user
-                ? 'Responsable de département'
-                : 'Gestion des contributions'}
-            <br />
-            Version 0.1.0
+          <p className="mt-12 mb-4 hidden text-[10px] font-semibold tracking-[.17em] text-stone-400 lg:block">
+            VOTRE ESPACE
           </p>
-        </div>
-      </aside>
-      <div className="min-w-0 flex-1 lg:ml-60">
+          <nav
+            aria-label="Navigation principale"
+            className="mt-5 flex flex-wrap gap-2 lg:mt-0 lg:flex-col"
+          >
+            {navigation.map(({ to, text, icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${isActive ? 'bg-[#edf3e9] text-[#234d3c]' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-800'}`
+                }
+              >
+                <Icon name={icon} />
+                {text}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="mt-8 hidden rounded-xl bg-[#f6f7f2] p-4 lg:block">
+            <p className="text-xs font-semibold text-stone-700">
+              {user ? user.firstName + ' ' + user.lastName : 'Chaque contribution compte'}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-stone-500">
+              {user?.role === 'SUPER_ADMIN'
+                ? 'Super Administrateur'
+                : user
+                  ? 'Responsable de département'
+                  : 'Gestion des contributions'}
+              <br />
+              Version 0.1.0
+            </p>
+          </div>
+        </aside>
+      )}
+      <div className={`min-w-0 flex-1 ${authScreen ? '' : 'lg:ml-60'}`}>
         <header className="flex min-h-20 items-center justify-between gap-4 border-b border-stone-200/80 bg-white/80 px-6 sm:px-10">
-          <p className="text-xs text-stone-400">
-            Organisation <span className="mx-2 text-stone-300">/</span>
-            <span className="text-stone-600">Espace de travail</span>
-          </p>
+          {authScreen ? (
+            <Link to="/" className="flex items-center gap-3" aria-label="SUIVI, accueil">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#123e38] font-display text-2xl text-white">
+                S
+              </span>
+              <span className="text-xl font-bold tracking-[.15em] text-[#173d34]">SUIVI</span>
+            </Link>
+          ) : (
+            <p className="text-xs text-stone-400">
+              Organisation <span className="mx-2 text-stone-300">/</span>
+              <span className="text-stone-600">Espace de travail</span>
+            </p>
+          )}
           <span
             role="status"
             className={`flex items-center gap-2 text-xs font-medium ${online ? 'text-[#49745b]' : 'text-amber-800'}`}
@@ -223,7 +236,7 @@ export function App() {
               Déconnexion non confirmée : {logoutError}
             </p>
           )}
-          {!online && (
+          {!online && !authScreen && (
             <p role="status" className="notice mb-5">
               L’application est ouverte sans réseau. L’accès hors connexion aux données de votre
               département n’est pas encore activé. Les nouvelles opérations nécessitent actuellement
@@ -246,10 +259,11 @@ export function App() {
                       replace
                     />
                   ) : (
-                    <OverviewPage />
+                    <Navigate to="/connexion" replace />
                   )
                 }
               />
+              <Route path="/presentation" element={<OverviewPage />} />
               <Route path="/diagnostic" element={<DiagnosticPage />} />
               <Route path="/installation" element={<InstallationPage />} />
               <Route path="/connexion" element={<LoginPage />} />

@@ -2,9 +2,11 @@
 
 Application de gestion des cotisations et encaissements hebdomadaires en FCFA.
 
-**État : phases 4 à 10 du cahier joint implémentées et testées ; 113 tests réussis.** Connexion, départements, responsables, membres, encaissements, objectifs, tableaux de bord, notifications internes et consultation d'audit utilisent PostgreSQL réel. Voir les comptes rendus [phases 4 à 9](documentation/PHASES_4_9.md), [phase 10](documentation/PHASE_10.md) et le [guide de prise en main](documentation/user-guide/PREMIERS_PAS.md). Le mode hors ligne, la synchronisation et les exports restent aux phases suivantes. Aucun compte réel ou jeu de données de démonstration n'est créé automatiquement.
+**Première ouverture :** ouvrir /connexion et choisir Administrateur ou Responsable. Si aucun administrateur n'existe, le choix Administrateur permet de créer le premier compte avec prénom, nom, e-mail et mot de passe. Ensuite, l'inscription se ferme et cet espace propose la connexion. Le responsable utilise l'identifiant et le code remis par son administrateur. Une nouvelle connexion révoque la précédente, et les formulaires d'authentification possèdent un champ piège vérifié par le serveur. Voir le [bilan connexion et sessions](documentation/CONNEXION_ET_SESSIONS.md).
 
-**Phase 11 en cours :** première partie installable validée, avec fondations IndexedDB chiffrées et mise à jour sur confirmation. La qualification actuelle comprend **131 tests réussis** (18 Jest, 25 Vitest/RTL, 76 PostgreSQL/API et 12 Playwright). L'accès privé aux membres et encaissements hors connexion reste non activé en attente de la durée d'autorisation. Voir le [périmètre exact et les limites](documentation/PHASE_11.md).
+**État : modules métier en ligne et nouveau parcours de connexion implémentés et testés ; 149 tests distincts validés.** Départements, responsables, membres, encaissements, objectifs, tableaux de bord, notifications internes et consultation d'audit utilisent PostgreSQL réel. Voir les comptes rendus [phases 4 à 9](documentation/PHASES_4_9.md), [phase 10](documentation/PHASE_10.md) et le [guide de prise en main](documentation/user-guide/PREMIERS_PAS.md). Le mode métier hors ligne, la synchronisation et les exports restent aux phases suivantes. Aucun compte réel ou jeu de données de démonstration n'est créé automatiquement.
+
+**Phase 11 en cours :** première partie installable validée, avec fondations IndexedDB chiffrées et mise à jour sur confirmation. La qualification actuelle comprend **149 tests distincts réussis** (18 Jest, 33 Vitest/RTL, 83 PostgreSQL/API et 15 Playwright), avec reprises ciblées documentées. Les mises à jour sont vérifiées dans une fenêtre mobile et deux onglets desktop ; le cas à deux onglets dans l'émulation mobile reste non qualifié. L'accès privé aux membres et encaissements hors connexion reste non activé en attente de la durée d'autorisation. Voir le [périmètre initial](documentation/PHASE_11.md) et le bilan connexion ci-dessus.
 
 ## Prérequis
 
@@ -116,9 +118,15 @@ npm.cmd run db:status
 
 La sauvegarde utilise pg_dump custom et est placée hors du projet, sous le profil utilisateur SUIVI/backups. Les migrations ne font aucun reset et préservent l'historique. Ne pas utiliser db push ou migrate reset pour contourner une erreur ; les triggers et contraintes SQL doivent rester versionnés et testés.
 
-## Premier administrateur — action explicite de l'opérateur
+## Premier administrateur
 
-Le bootstrap n'est pas exécuté automatiquement. Dans votre terminal personnel :
+Dans l'application, choisir **Administrateur** puis remplir le formulaire proposé : prénom, nom, e-mail, mot de passe et confirmation. Le mot de passe choisi doit contenir au moins 12 caractères. La création ouvre votre espace ; elle est disponible uniquement avant l'initialisation de l'organisation, même si un ancien administrateur a ensuite été désactivé. Terminer cette première création avant de rendre une nouvelle instance accessible au public.
+
+Le formulaire ne crée aucune campagne ni donnée de démonstration. Les responsables sont ensuite créés depuis l'espace administrateur. L'adresse e-mail du nouvel administrateur sert à sa connexion ; aucun e-mail de validation n'est envoyé.
+
+### Autre méthode : bootstrap terminal
+
+Le bootstrap n'est pas exécuté automatiquement. Il reste utilisable pour initialiser le premier compte depuis votre terminal personnel :
 
 ```powershell
 npm.cmd run auth:bootstrap

@@ -11,6 +11,9 @@ import pg from 'pg';
 const backend = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const browserOnly = process.argv.includes('--e2e-only');
 const withBrowser = browserOnly || process.argv.includes('--e2e');
+const browserArgumentStart = process.argv.indexOf('--');
+const browserArguments =
+  browserArgumentStart === -1 ? [] : process.argv.slice(browserArgumentStart + 1);
 let cluster;
 let bin;
 let started = false;
@@ -277,29 +280,18 @@ try {
       FRONTEND_ORIGIN: 'http://127.0.0.1:4174',
     };
     run(process.execPath, [prisma, 'migrate', 'deploy'], { env: e2eEnv, stdio: 'inherit' });
-    const { createPrismaClient } = await import('../dist/database/prisma-client.js');
-    const { bootstrapAdministrator } = await import('../dist/database/seeding.js');
-    const client = createPrismaClient(urls.e2eApp);
-    const login = 'e2e.admin.' + randomBytes(8).toString('hex');
+    // Le projet Playwright initialisation crée le compte depuis la vraie interface.
+    const login = 'e2e.admin.' + randomBytes(8).toString('hex') + '@example.test';
     const password = randomBytes(24).toString('base64url');
-    try {
-      const id = await bootstrapAdministrator(client, {
-        login,
-        firstName: 'Recette',
-        lastName: 'Navigateur',
-        password,
-      });
-      // Fixture uniquement : le parcours de changement initial sera exercé sur les responsables créés dans l'interface.
-      await client.user.update({
-        where: { id },
-        data: { mustChangePassword: false, version: { increment: 1 } },
-      });
-    } finally {
-      await client.$disconnect();
-    }
     run(
       process.execPath,
-      ['../node_modules/@playwright/test/cli.js', 'test', '--config', '../playwright.config.ts'],
+      [
+        '../node_modules/@playwright/test/cli.js',
+        'test',
+        '--config',
+        '../playwright.config.ts',
+        ...browserArguments,
+      ],
       {
         env: {
           ...e2eEnv,

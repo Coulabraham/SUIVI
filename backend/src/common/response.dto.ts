@@ -11,6 +11,7 @@ import type {
   UserProfile,
   WeekView,
   DashboardView,
+  RegistrationStatus,
 } from '@suivi/contracts';
 
 export class UserDto implements UserProfile {
@@ -28,6 +29,9 @@ export class AuthResultDto implements AuthResult {
   @ApiProperty({ description: 'JWT court ; conserver en mémoire uniquement.' })
   accessToken!: string;
   @ApiProperty({ type: UserDto }) user!: UserDto;
+}
+export class RegistrationStatusDto implements RegistrationStatus {
+  @ApiProperty() registrationOpen!: boolean;
 }
 export class PasswordChangedDto {
   @ApiProperty() changed!: boolean;

@@ -8,9 +8,21 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { baseURL: 'http://127.0.0.1:4174', trace: 'retain-on-failure', actionTimeout: 15000 },
   projects: [
-    { name: 'chrome-desktop', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
+    {
+      name: 'initialisation',
+      testMatch: 'auth-setup.spec.ts',
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+    },
+    {
+      name: 'chrome-desktop',
+      dependencies: ['initialisation'],
+      testIgnore: 'auth-setup.spec.ts',
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+    },
     {
       name: 'chrome-mobile',
+      dependencies: ['initialisation'],
+      testIgnore: 'auth-setup.spec.ts',
       use: { ...devices['Pixel 7'], browserName: 'chromium', channel: 'chrome' },
     },
   ],

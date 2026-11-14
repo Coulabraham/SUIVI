@@ -84,11 +84,20 @@ Date initiale : 12 novembre 2026. L'utilisateur a validé la conception généra
 
 ## Décisions métier nécessaires
 
+Évolution explicitement demandée le 14 novembre : le premier administrateur utilise son e-mail, son prénom/nom et un mot de passe personnel ; un responsable conserve son identifiant et son code. Une nouvelle connexion remplace la session précédente du compte. Cela précise Q01 pour le nouvel administrateur et Q18 pour la simultanéité des accès ; Q02 (durée privée hors ligne) reste sans réponse. Voir [le comportement implémenté](CONNEXION_ET_SESSIONS.md).
+
+| ID | Décision complémentaire | Justification |
+|---|---|---|
+| ADR-54 | Inscription du premier administrateur seulement, même verrou PostgreSQL que le bootstrap terminal | Interdire une deuxième initialisation concurrente et ne pas rouvrir la création après désactivation |
+| ADR-55 | Nouvelle connexion prioritaire ; révocation transactionnelle de toutes les sessions antérieures sous verrou utilisateur | Une session active par compte, y compris entre deux connexions simultanées ; refus immédiat des anciens JWT/refresh côté API |
+| ADR-56 | Champ website vide obligatoire, masqué pour l'utilisateur, contrôlé par Zod et class-validator | Compléter la limitation des tentatives sans prétendre bloquer tous les robots ; aucun rôle accordé par un choix d'interface |
+| ADR-57 | Georgia/Cambria pour les titres, Segoe UI/system-ui pour les textes et formulaires | Hiérarchie visuelle distincte et fonctionnement sans dépendance à un service de polices distant |
+
 Les questions Q01 à Q03 ont été présentées pendant l'analyse ; aucune réponse n'a été présumée. Les propositions suivantes permettent de discuter un résultat concret sans inventer les règles définitives.
 
 | ID | Question | Proposition / possibilités | Quand trancher |
 |---|---|---|---|
-| Q01 | Identifiant de connexion ? | Nom d'utilisateur unique **ou** téléphone unique normalisé E.164. Le contact reste distinct du login | Avant DTO et seed d'authentification |
+| Q01 | Identifiant de connexion ? | E-mail confirmé pour le premier administrateur créé par interface le 14 novembre ; identifiant unique conservé pour les responsables et comptes historiques. Téléphone comme identifiant non demandé | Administrateur tranché ; évolution téléphone éventuelle |
 | Q02 | Durée d'autorisation hors ligne après connexion en ligne ? | 7 jours, 72 h ou 24 h ; durée choisie visible à l'utilisateur | Avant authentification/offline |
 | Q03 | Paiement arrivé après clôture, archivage ou transfert ? | Mise en conflit pour arbitrage administrateur, ou rejet conservé localement ; jamais abandon silencieux | Avant validation financière et sync |
 | Q04 | Calendrier exact de la première campagne ? | Dates et nom à fournir ; 12 mois envisagés, sans dates inventées | Avant seed de campagne réelle |
@@ -105,7 +114,7 @@ Les questions Q01 à Q03 ont été présentées pendant l'analyse ; aucune répo
 | Q15 | Champs corrigeables d'un paiement ? | Montant et mode en V1 ; changement de membre/département par annulation et remplacement liés, jamais déplacement silencieux | Avant révisions |
 | Q16 | Montants maximaux et monnaie exacte ? | FCFA ; préciser XOF ou XAF et limite opérationnelle par versement. Capacité technique BIGINT ≠ plafond métier | Avant validation financière |
 | Q17 | Communication du secret initial et délai d'utilisation ? | Affichage unique, remise directe ou canal privé vérifié choisi par l'organisation ; aucun envoi automatisé sans instruction | Avant création de comptes |
-| Q18 | Plusieurs appareils et appareil partagé ? | Plusieurs appareils possibles, compte toujours individuel ; préciser limites et politique d'effacement local | Avant PWA |
+| Q18 | Plusieurs appareils et appareil partagé ? | Une seule session active par compte, demandée le 14 novembre ; une nouvelle connexion révoque la précédente. Politique d'effacement et partage physique toujours à préciser | Simultanéité tranchée ; effacement privé avant offline |
 | Q19 | Comment reconnaître une même personne saisie deux fois ? | Numéro membre existant et recherche de rapprochements ; ne pas imposer l'unicité du nom ou du téléphone sans validation | Avant gestion des doublons membres |
 
 ## Paramètres d'exploitation à préciser sans bloquer l'initialisation

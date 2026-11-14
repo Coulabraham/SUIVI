@@ -1,4 +1,4 @@
-# Premiers pas — version métier des phases 4 à 10
+# Premiers pas — SUIVI
 
 ## Créer le premier accès
 
@@ -6,13 +6,14 @@ Dans votre terminal personnel, à la racine du projet :
 
 ```powershell
 npm.cmd run db:local:start
-npm.cmd run auth:bootstrap
-npm.cmd run dev
+npm.cmd run preview:pwa
 ```
 
-Le bootstrap demande votre identifiant, prénom, nom et la durée de validité du secret initial. Il indique la base ciblée et demande de taper CREER avant l'insertion. Il génère un secret aléatoire affiché une seule fois dans votre terminal. Il refuse de remplacer un Super Administrateur existant. Aucun identifiant ou mot de passe universel n'existe.
+Ouvrez [la connexion locale](http://localhost:4173/connexion). Au premier lancement, choisissez **Administrateur** et indiquez votre prénom, nom, adresse e-mail, mot de passe et sa confirmation. Utilisez au moins 12 caractères. Votre compte est créé et votre espace s'ouvre. Aucun compte ni campagne n'est créé automatiquement. L'inscription est ensuite fermée ; le bouton Administrateur propose votre connexion.
 
-Ouvrez [la connexion locale](http://127.0.0.1:5173/connexion), puis remplacez immédiatement ce secret par votre mot de passe personnel. Vous devrez ensuite vous reconnecter. Les sessions antérieures sont révoquées après tout changement de mot de passe.
+Un responsable choisit **Responsable**, puis saisit l'identifiant et le code remis par son administrateur. Au premier accès, il remplace le code provisoire par son mot de passe personnel et se reconnecte. Toute nouvelle connexion ferme la session précédente du compte, y compris sur un autre appareil. Une saisie incorrecte n'expulse pas la session légitime.
+
+Le [bootstrap terminal](../../README.md#autre-méthode--bootstrap-terminal) reste disponible pour l'opérateur qui préfère initialiser le premier compte ainsi. Les comptes historiques sans e-mail conservent leur identifiant. L'inscription ne certifie pas la possession de la boîte e-mail et n'envoie pas de message.
 
 ## Préparer la collecte — Super Administrateur
 

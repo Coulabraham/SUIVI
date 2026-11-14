@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyUpdate, installApp, startPwa, usePwaStore } from './client';
+import { applyUpdate, installApp, observeUpdates, startPwa, usePwaStore } from './client';
 
 beforeAll(async () => {
   Object.defineProperty(window, 'matchMedia', {
@@ -12,6 +12,26 @@ beforeEach(() =>
   usePwaStore.setState({ installAvailable: false, error: '', updateAvailable: false }),
 );
 describe('Installation et mise à jour explicites', () => {
+  it('repère un worker déjà en attente sans attendre un nouvel événement du SDK', () => {
+    const registration = Object.assign(new EventTarget(), { waiting: {}, installing: null });
+    observeUpdates(registration as unknown as ServiceWorkerRegistration, () => true);
+    expect(usePwaStore.getState().updateAvailable).toBe(true);
+  });
+  it('annonce une nouvelle installation seulement si une version contrôle déjà la page', () => {
+    const worker = Object.assign(new EventTarget(), { state: 'installing' });
+    const registration = Object.assign(new EventTarget(), { waiting: null, installing: worker });
+    let controlled = false;
+    observeUpdates(registration as unknown as ServiceWorkerRegistration, () => controlled);
+    worker.state = 'installed';
+    worker.dispatchEvent(new Event('statechange'));
+    expect(usePwaStore.getState().updateAvailable).toBe(false);
+    controlled = true;
+    worker.state = 'installing';
+    registration.dispatchEvent(new Event('updatefound'));
+    worker.state = 'installed';
+    worker.dispatchEvent(new Event('statechange'));
+    expect(usePwaStore.getState().updateAvailable).toBe(true);
+  });
   it('consomme la proposition d’installation une seule fois, y compris après un refus', async () => {
     const event = new Event('beforeinstallprompt', { cancelable: true });
     const prompt = vi.fn().mockResolvedValue(undefined);

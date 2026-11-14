@@ -316,7 +316,7 @@ describe('Phase 10 — événements et confidentialité', () => {
     ).toBe(0);
     const device = randomUUID();
     await signIn(1, device).expect(200);
-    await signIn(1, device).expect(200);
+    managerToken = (await signIn(1, device).expect(200)).body.data.accessToken;
     const event = await db.prisma.auditLog.findFirstOrThrow({
       where: { action: 'UNUSUAL_LOGIN', actorId: managerId },
     });

@@ -63,24 +63,108 @@ beforeAll(async () => {
   configureApp(app);
   await app.init();
   db = app.get(DatabaseService);
-  userId = (
-    await db.prisma.user.create({
-      data: {
-        loginIdentifier: login,
-        loginNormalized: login,
-        firstName: 'Test',
-        lastName: 'Authentification',
-        role: 'SUPER_ADMIN',
-        passwordHash: await hashInitialPassword(secret),
-      },
-    })
-  ).id;
 }, 120000);
 afterAll(async () => {
   await app?.close();
 });
 
+describe('Initialisation administrateur par navigateur', () => {
+  const registration = (suffix: string) => ({
+    email: 'initial.' + suffix + '@example.test',
+    firstName: 'Premier',
+    lastName: 'Administrateur',
+    password: secret,
+    deviceId: randomUUID(),
+    deviceLabel: 'Initialisation navigateur',
+    website: '',
+  });
+  const create = (payload: object) =>
+    request(app.getHttpServer())
+      .post(path + 'auth/register-admin')
+      .set('X-SUIVI-CLIENT', 'web')
+      .send(payload);
+  it('ouvre uniquement l’initialisation vide, sans mettre le statut en cache', async () => {
+    const response = await request(app.getHttpServer())
+      .get(path + 'auth/registration-status')
+      .expect(200);
+    expect(response.body.data).toEqual({ registrationOpen: true });
+    expect(response.headers['cache-control']).toBe('no-store');
+  });
+  it('rejette le piège, les champs injectés, un e-mail ou un mot de passe invalide et le cross-site sans créer de compte', async () => {
+    const value = registration(randomUUID());
+    for (const payload of [
+      { ...value, website: 'https://spam.example' },
+      { ...value, website: null },
+      { ...value, role: 'SUPER_ADMIN' },
+      { ...value, email: 'invalide' },
+      { ...value, password: 'court' },
+      { ...value, firstName: '   ' },
+    ])
+      await create(payload).expect(400);
+    await request(app.getHttpServer())
+      .post(path + 'auth/register-admin')
+      .set('X-SUIVI-CLIENT', 'web')
+      .set('Origin', 'https://foreign.example')
+      .send(value)
+      .expect(403);
+    expect(await db.prisma.user.count()).toBe(0);
+  });
+  it('crée un seul administrateur sous concurrence, avec hash, session et audit atomiques', async () => {
+    const values = [registration(randomUUID()), registration(randomUUID())];
+    const responses = await Promise.all(values.map((value) => create(value)));
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    const index = responses.findIndex((response) => response.status === 201);
+    const response = responses[index]!;
+    const row = await db.prisma.user.findUniqueOrThrow({
+      where: { id: response.body.data.user.id },
+    });
+    expect(row.loginNormalized).toBe(values[index]!.email);
+    expect(row.passwordHash).toMatch(/^\$argon2id/);
+    expect(row.passwordHash).not.toBe(secret);
+    expect(row.mustChangePassword).toBe(false);
+    expect(row.initialPasswordExpiresAt).toBeNull();
+    expect(response.body.data.user.passwordHash).toBeUndefined();
+    expect(cookieOf(response)).toMatch(/HttpOnly/);
+    expect(await db.prisma.user.count({ where: { role: 'SUPER_ADMIN' } })).toBe(1);
+    expect(await db.prisma.session.count({ where: { userId: row.id, revokedAt: null } })).toBe(1);
+    expect(
+      await db.prisma.auditLog.count({ where: { actorId: row.id, action: 'ADMIN_REGISTERED' } }),
+    ).toBe(1);
+    await request(app.getHttpServer())
+      .get(path + 'protected-test')
+      .auth(response.body.data.accessToken, { type: 'bearer' })
+      .expect(200);
+  });
+  it('ferme la création, même si l’administrateur initial est désactivé', async () => {
+    const initial = await db.prisma.user.findFirstOrThrow({ where: { role: 'SUPER_ADMIN' } });
+    await db.prisma.user.update({
+      where: { id: initial.id },
+      data: { status: 'INACTIVE', version: { increment: 1 } },
+    });
+    expect(
+      (await request(app.getHttpServer()).get(path + 'auth/registration-status')).body.data
+        .registrationOpen,
+    ).toBe(false);
+    await create(registration(randomUUID())).expect(409);
+    expect(await db.prisma.user.count()).toBe(1);
+  });
+});
+
 describe('Phase 4 — authentification HTTP avec PostgreSQL', () => {
+  beforeAll(async () => {
+    userId = (
+      await db.prisma.user.create({
+        data: {
+          loginIdentifier: login,
+          loginNormalized: login,
+          firstName: 'Test',
+          lastName: 'Authentification',
+          role: 'SUPER_ADMIN',
+          passwordHash: await hashInitialPassword(secret),
+        },
+      })
+    ).id;
+  });
   it('refuse les routes protégées sans JWT et les connexions invalides sans fuite', async () => {
     await request(app.getHttpServer())
       .get(path + 'protected-test')
@@ -170,6 +254,86 @@ describe('Phase 4 — authentification HTTP avec PostgreSQL', () => {
       .auth(rotated.body.data.accessToken, { type: 'bearer' })
       .expect(401);
   });
+
+  it('révoque l’ancien JWT et son refresh lorsqu’un autre appareil se connecte', async () => {
+    const first = await signIn(next).expect(200);
+    const replacement = await request(app.getHttpServer())
+      .post(path + 'auth/login')
+      .set('X-SUIVI-CLIENT', 'web')
+      .send({
+        login,
+        password: next,
+        portal: 'SUPER_ADMIN',
+        deviceId: randomUUID(),
+        deviceLabel: 'Autre appareil',
+        website: '',
+      })
+      .expect(200);
+    await request(app.getHttpServer())
+      .get(path + 'auth/profile')
+      .auth(first.body.data.accessToken, { type: 'bearer' })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post(path + 'auth/refresh')
+      .set('X-SUIVI-CLIENT', 'web')
+      .set('Cookie', cookieOf(first).split(';')[0]!)
+      .expect(401);
+    await request(app.getHttpServer())
+      .get(path + 'auth/profile')
+      .auth(replacement.body.data.accessToken, { type: 'bearer' })
+      .expect(200);
+    expect(await db.prisma.session.count({ where: { userId, revokedAt: null } })).toBe(1);
+    expect(
+      await db.prisma.auditLog.count({
+        where: { actorId: userId, action: 'PREVIOUS_SESSIONS_REVOKED' },
+      }),
+    ).toBeGreaterThan(0);
+  });
+  it('conserve une seule session sous deux connexions simultanées', async () => {
+    const responses = await Promise.all(
+      [0, 1].map(() =>
+        request(app.getHttpServer())
+          .post(path + 'auth/login')
+          .set('X-SUIVI-CLIENT', 'web')
+          .send({ login, password: next, deviceId: randomUUID(), deviceLabel: 'Concurrence' })
+          .expect(200),
+      ),
+    );
+    const profiles = await Promise.all(
+      responses.map((response) =>
+        request(app.getHttpServer())
+          .get(path + 'auth/profile')
+          .auth(response.body.data.accessToken, { type: 'bearer' }),
+      ),
+    );
+    expect(profiles.map((response) => response.status).sort()).toEqual([200, 401]);
+    expect(await db.prisma.session.count({ where: { userId, revokedAt: null } })).toBe(1);
+  });
+  it('refuse un mauvais espace ou un piège rempli sans révoquer la session légitime', async () => {
+    const first = await signIn(next).expect(200);
+    await request(app.getHttpServer())
+      .post(path + 'auth/login')
+      .set('X-SUIVI-CLIENT', 'web')
+      .send({
+        login,
+        password: next,
+        deviceId,
+        deviceLabel: 'Test',
+        portal: 'MANAGER',
+        website: '',
+      })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post(path + 'auth/login')
+      .set('X-SUIVI-CLIENT', 'web')
+      .send({ login, password: next, deviceId, deviceLabel: 'Test', website: 'bot' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get(path + 'auth/profile')
+      .auth(first.body.data.accessToken, { type: 'bearer' })
+      .expect(200);
+  });
+
   it('révoque à la déconnexion puis refuse un compte désactivé', async () => {
     const response = await signIn(next).expect(200);
     token = response.body.data.accessToken;
@@ -283,6 +447,18 @@ describe('Phase 6 — responsables, remise et réinitialisation des accès', () 
     ).toBeUndefined();
     const firstA = await managerLogin(managerLoginA, a.body.data.initialPassword, managerDeviceA);
     const firstB = await managerLogin(managerLoginB, b.body.data.initialPassword, managerDeviceB);
+    await request(app.getHttpServer())
+      .post(path + 'auth/login')
+      .set('X-SUIVI-CLIENT', 'web')
+      .send({
+        login: managerLoginA,
+        password: a.body.data.initialPassword,
+        deviceId: managerDeviceA,
+        deviceLabel: 'Mauvais espace',
+        portal: 'SUPER_ADMIN',
+        website: '',
+      })
+      .expect(401);
     await apiRequest('get', 'members', firstA.body.data.accessToken).expect(403);
     for (const response of [firstA, firstB])
       await apiRequest('post', 'auth/change-password', response.body.data.accessToken)

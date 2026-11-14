@@ -46,6 +46,216 @@
         ]
       }
     },
+    "/api/v1/auth/registration-status": {
+      "get": {
+        "operationId": "AuthController_registrationStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RegistrationStatusDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Indique si le premier administrateur peut être créé",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register-admin": {
+      "post": {
+        "operationId": "AuthController_registerAdmin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAdminDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Créer le premier administrateur ; fermé après initialisation",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "AuthController_login",
@@ -5295,6 +5505,48 @@
           "data"
         ]
       },
+      "RegistrationStatusDto": {
+        "type": "object",
+        "properties": {
+          "registrationOpen": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "registrationOpen"
+        ]
+      },
+      "ErrorDetailDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ]
+      },
+      "ErrorDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetailDto"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
       "UserDto": {
         "type": "object",
         "properties": {
@@ -5364,40 +5616,55 @@
           "user"
         ]
       },
-      "ErrorDetailDto": {
+      "RegisterAdminDto": {
         "type": "object",
         "properties": {
-          "code": {
+          "website": {
+            "type": "string",
+            "description": "Champ piège : doit être absent ou vide.",
+            "maxLength": 0
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 100
+          },
+          "firstName": {
             "type": "string"
           },
-          "message": {
+          "lastName": {
             "type": "string"
           },
-          "requestId": {
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 256
+          },
+          "deviceId": {
             "type": "string",
             "format": "uuid"
+          },
+          "deviceLabel": {
+            "type": "string"
           }
         },
         "required": [
-          "code",
-          "message",
-          "requestId"
-        ]
-      },
-      "ErrorDto": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "$ref": "#/components/schemas/ErrorDetailDto"
-          }
-        },
-        "required": [
-          "error"
+          "email",
+          "firstName",
+          "lastName",
+          "password",
+          "deviceId",
+          "deviceLabel"
         ]
       },
       "LoginDto": {
         "type": "object",
         "properties": {
+          "website": {
+            "type": "string",
+            "description": "Champ piège : doit être absent ou vide.",
+            "maxLength": 0
+          },
           "login": {
             "type": "string"
           },
@@ -5410,6 +5677,13 @@
           },
           "deviceLabel": {
             "type": "string"
+          },
+          "portal": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "MANAGER"
+            ]
           }
         },
         "required": [
@@ -5444,6 +5718,11 @@
       "ChangePasswordDto": {
         "type": "object",
         "properties": {
+          "website": {
+            "type": "string",
+            "description": "Champ piège : doit être absent ou vide.",
+            "maxLength": 0
+          },
           "currentPassword": {
             "type": "string"
           },

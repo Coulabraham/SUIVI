@@ -4,6 +4,8 @@ Dernière mise à jour : 14 novembre 2026.
 
 ## État général
 
+Évolution demandée le 14 novembre : première ouverture avec choix Administrateur/Responsable, inscription initiale par e-mail, session unique et champ piège d'authentification. Implémentation testée : **149 tests distincts validés** (18 Jest, 33 Vitest/RTL, 83 PostgreSQL/API, 15 Playwright), avec reprises ciblées précisées dans le [bilan dédié](CONNEXION_ET_SESSIONS.md). Les mises à jour PWA sont vérifiées dans une fenêtre mobile et deux onglets desktop ; les deux onglets de l'émulation mobile restent non qualifiés. Les choix d'autorisation privée hors ligne restent ouverts.
+
 | Phase | État |
 |---|---|
 | 1 — Analyse et conception | Terminée ; conception générale validée par « ok continue » |

@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
   HttpException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -12,7 +13,7 @@ import { transactionOptions } from '../database/transaction-options.js';
 import { hashInitialPassword, verifyPasswordHash } from '../common/passwords.js';
 import type { User, Session, Prisma } from '../generated/prisma/client.js';
 import type { Principal } from './auth.types.js';
-import type { LoginDto, ChangePasswordDto } from './auth.dto.js';
+import type { LoginDto, ChangePasswordDto, RegisterAdminDto } from './auth.dto.js';
 import { EventRecorder } from '../events/event-recorder.js';
 
 export const safeUser = (user: User) => ({
@@ -64,6 +65,68 @@ export class AuthService {
     });
   }
 
+  async registrationStatus() {
+    return {
+      registrationOpen: (await this.db.prisma.user.count({ where: { role: 'SUPER_ADMIN' } })) === 0,
+    };
+  }
+
+  private registrationClosed(): never {
+    throw new ConflictException({
+      code: 'ADMIN_REGISTRATION_CLOSED',
+      message: 'Un administrateur existe déjà. Connectez-vous avec vos accès.',
+    });
+  }
+
+  async registerAdmin(dto: RegisterAdminDto, ip: string, requestId: string) {
+    this.checkAttempts('ip:' + ip);
+    if (!(await this.registrationStatus()).registrationOpen) this.registrationClosed();
+    const passwordHash = await hashInitialPassword(dto.password);
+    const result = await this.db.prisma.$transaction(async (tx) => {
+      // Même verrou que le bootstrap terminal : une seule initialisation, même en concurrence.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(726384901)`;
+      if (await tx.user.count({ where: { role: 'SUPER_ADMIN' } })) this.registrationClosed();
+      const normalized = dto.email.trim().normalize('NFKC').toLocaleLowerCase('en-US');
+      if (
+        await tx.user.findUnique({ where: { loginNormalized: normalized }, select: { id: true } })
+      )
+        throw new ConflictException({
+          code: 'LOGIN_UNAVAILABLE',
+          message: 'Cette adresse ne peut pas être utilisée.',
+        });
+      const user = await tx.user.create({
+        data: {
+          loginIdentifier: dto.email.trim(),
+          loginNormalized: normalized,
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          passwordHash,
+          role: 'SUPER_ADMIN',
+          mustChangePassword: false,
+        },
+      });
+      await tx.syncScope.createMany({ data: [{ key: 'GLOBAL' }], skipDuplicates: true });
+      const session = await this.startSession(tx, user, dto, requestId);
+      await this.events.record(tx, {
+        actorId: user.id,
+        actorRole: user.role,
+        action: 'ADMIN_REGISTERED',
+        entityType: 'User',
+        entityId: user.id,
+        deviceId: dto.deviceId,
+        afterValue: { loginIdentifier: user.loginIdentifier },
+        outcome: 'SUCCESS',
+        requestId,
+      });
+      return session;
+    }, transactionOptions);
+    return {
+      ...(await this.issue(result.user, result.session)),
+      refresh: result.refresh,
+      expiresAt: result.expiresAt,
+    };
+  }
+
   async login(dto: LoginDto, ip: string, requestId: string) {
     const normalized = dto.login.trim().normalize('NFKC').toLocaleLowerCase('en-US');
     this.checkAttempts('ip:' + ip);
@@ -79,6 +142,7 @@ export class AuthService {
     if (
       !valid ||
       !user ||
+      (dto.portal !== undefined && user.role !== dto.portal) ||
       user.status !== 'ACTIVE' ||
       (user.initialPasswordExpiresAt && user.initialPasswordExpiresAt < new Date()) ||
       (user.role === 'MANAGER' && user.department?.status !== 'ACTIVE')
@@ -93,8 +157,6 @@ export class AuthService {
       });
       throw new UnauthorizedException();
     }
-    const refresh = randomBytes(48).toString('base64url');
-    const expiresAt = new Date(Date.now() + lifetime);
     const result = await this.db.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM users WHERE id=${user.id}::uuid FOR UPDATE`;
       const fresh = await tx.user.findUniqueOrThrow({
@@ -104,73 +166,107 @@ export class AuthService {
       if (
         fresh.passwordHash !== user.passwordHash ||
         fresh.status !== 'ACTIVE' ||
+        (dto.portal !== undefined && fresh.role !== dto.portal) ||
         (fresh.role === 'MANAGER' && fresh.department?.status !== 'ACTIVE')
       )
         throw new UnauthorizedException();
-      const existing = await tx.device.findUnique({ where: { id: dto.deviceId } });
-      if (existing && (existing.userId !== user.id || existing.status !== 'ACTIVE'))
-        throw new UnauthorizedException();
-      const unusual = !existing && (await tx.device.count({ where: { userId: user.id } })) > 0;
-      await tx.device.upsert({
-        where: { id: dto.deviceId },
-        create: {
-          id: dto.deviceId,
-          userId: user.id,
-          label: dto.deviceLabel,
-          lastSeenAt: new Date(),
-        },
-        update: { lastSeenAt: new Date(), label: dto.deviceLabel },
-      });
-      const created = await tx.session.create({
-        data: {
-          userId: user.id,
-          deviceId: dto.deviceId,
-          credentialVersion: fresh.credentialVersion,
-          authzVersion: fresh.authzVersion,
-          expiresAt,
-        },
-      });
-      await tx.refreshToken.create({
-        data: { sessionId: created.id, tokenHash: digest(refresh), expiresAt },
-      });
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date(), version: { increment: 1 } },
-      });
+      return this.startSession(tx, fresh, dto, requestId);
+    }, transactionOptions);
+    this.attempts.delete('login:' + digest(normalized));
+    return {
+      ...(await this.issue(result.user, result.session)),
+      refresh: result.refresh,
+      expiresAt: result.expiresAt,
+    };
+  }
+
+  private async startSession(
+    tx: Prisma.TransactionClient,
+    user: User,
+    dto: Pick<LoginDto, 'deviceId' | 'deviceLabel'>,
+    requestId: string,
+  ) {
+    const existing = await tx.device.findUnique({ where: { id: dto.deviceId } });
+    if (existing && (existing.userId !== user.id || existing.status !== 'ACTIVE'))
+      throw new UnauthorizedException();
+    const now = new Date();
+    const revoked = await tx.session.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    const refresh = randomBytes(48).toString('base64url');
+    const expiresAt = new Date(Date.now() + lifetime);
+    const unusual = !existing && (await tx.device.count({ where: { userId: user.id } })) > 0;
+    await tx.device.upsert({
+      where: { id: dto.deviceId },
+      create: {
+        id: dto.deviceId,
+        userId: user.id,
+        label: dto.deviceLabel,
+        lastSeenAt: new Date(),
+      },
+      update: { lastSeenAt: new Date(), label: dto.deviceLabel },
+    });
+    if (revoked.count)
       await this.events.record(tx, {
         actorId: user.id,
         actorRole: user.role,
         departmentId: user.departmentId,
         deviceId: dto.deviceId,
-        action: 'LOGIN_SUCCEEDED',
-        ...(existing && existing.label !== dto.deviceLabel
-          ? {
-              beforeValue: { deviceLabel: existing.label },
-              afterValue: { deviceLabel: dto.deviceLabel },
-            }
-          : {}),
+        action: 'PREVIOUS_SESSIONS_REVOKED',
+        entityType: 'User',
+        entityId: user.id,
+        outcome: 'SUCCESS',
+        requestId,
+        afterValue: { reason: 'NEW_LOGIN', revokedSessions: revoked.count },
+      });
+    const created = await tx.session.create({
+      data: {
+        userId: user.id,
+        deviceId: dto.deviceId,
+        credentialVersion: user.credentialVersion,
+        authzVersion: user.authzVersion,
+        expiresAt,
+      },
+    });
+    await tx.refreshToken.create({
+      data: { sessionId: created.id, tokenHash: digest(refresh), expiresAt },
+    });
+    const updatedUser = await tx.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date(), version: { increment: 1 } },
+    });
+    await this.events.record(tx, {
+      actorId: user.id,
+      actorRole: user.role,
+      departmentId: user.departmentId,
+      deviceId: dto.deviceId,
+      action: 'LOGIN_SUCCEEDED',
+      ...(existing && existing.label !== dto.deviceLabel
+        ? {
+            beforeValue: { deviceLabel: existing.label },
+            afterValue: { deviceLabel: dto.deviceLabel },
+          }
+        : {}),
+      entityType: 'Session',
+      entityId: created.id,
+      outcome: 'SUCCESS',
+      requestId,
+    });
+    if (unusual)
+      await this.events.record(tx, {
+        actorId: user.id,
+        actorRole: user.role,
+        departmentId: user.departmentId,
+        deviceId: dto.deviceId,
+        action: 'UNUSUAL_LOGIN',
         entityType: 'Session',
         entityId: created.id,
         outcome: 'SUCCESS',
         requestId,
+        afterValue: { reason: 'NEW_DEVICE' },
       });
-      if (unusual)
-        await this.events.record(tx, {
-          actorId: user.id,
-          actorRole: user.role,
-          departmentId: user.departmentId,
-          deviceId: dto.deviceId,
-          action: 'UNUSUAL_LOGIN',
-          entityType: 'Session',
-          entityId: created.id,
-          outcome: 'SUCCESS',
-          requestId,
-          afterValue: { reason: 'NEW_DEVICE' },
-        });
-      return { session: created, user: updatedUser };
-    }, transactionOptions);
-    this.attempts.delete('login:' + digest(normalized));
-    return { ...(await this.issue(result.user, result.session)), refresh, expiresAt };
+    return { session: created, user: updatedUser, refresh, expiresAt };
   }
 
   private async issue(user: User, session: Session) {
