@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { MemberView } from '@suivi/contracts';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../stores/auth';
@@ -17,7 +17,8 @@ import { useDepartmentOptions } from '../departments/options';
 export function MembersPage() {
   const user = useAuthStore((s) => s.user)!;
   const admin = user.role === 'SUPER_ADMIN';
-  const list = useList<MemberView>('/members');
+  const [params] = useSearchParams();
+  const list = useList<MemberView>('/members', undefined, 0, params.get('q') ?? '');
   const departments = useDepartmentOptions(admin);
   const invalidate = useInvalidate();
   const [editing, setEditing] = useState<MemberView | 'new' | null>(null);

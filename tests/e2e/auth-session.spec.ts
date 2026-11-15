@@ -16,7 +16,7 @@ test('une connexion sur un autre appareil ferme la première session', async ({ 
     await target.getByRole('button', { name: 'Se connecter', exact: true }).click();
     const token = (await (await response).json()).data.accessToken as string;
     await expect(
-      target.getByRole('heading', { name: 'Vue d’ensemble', exact: true }),
+      target.getByRole('heading', { name: 'Tableau de bord général', exact: true }),
     ).toBeVisible();
     return token;
   };
@@ -31,7 +31,9 @@ test('une connexion sur un autre appareil ferme la première session', async ({ 
     expect(rejected.status()).toBe(401);
     await page.reload();
     await expect(page.getByRole('button', { name: 'Administrateur', exact: true })).toBeVisible();
-    await expect(other.getByRole('heading', { name: 'Vue d’ensemble', exact: true })).toBeVisible();
+    await expect(
+      other.getByRole('heading', { name: 'Tableau de bord général', exact: true }),
+    ).toBeVisible();
     await other.getByRole('button', { name: 'Se déconnecter', exact: true }).click();
   } finally {
     await secondDevice.close();

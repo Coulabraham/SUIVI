@@ -136,6 +136,7 @@ export interface DashboardView {
   progress: ProgressView | null;
   departmentTotal: string;
   weekTotal: string;
+  weeklyCollections: { id: string; number: number; startsOn: string; totalAmount: string }[];
   departments: { id: string; name: string; totalAmount: string }[];
   members: { id: string; name: string; totalAmount: string }[];
   recentPayments: PaymentView[];

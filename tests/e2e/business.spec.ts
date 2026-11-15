@@ -19,6 +19,18 @@ const signIn = async (page: Page, login: string, secret: string) => {
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
 };
 
+const navigation = async (page: Page, name: string | RegExp) => {
+  const drawer = page.getByRole('dialog', { name: 'Menu de navigation' });
+  const desktop = page.locator('.desktop-sidebar');
+  if (await desktop.isVisible())
+    await desktop.getByRole('link', { name, exact: typeof name === 'string' }).click();
+  else {
+    await page.getByRole('button', { name: 'Ouvrir le menu', exact: true }).click();
+    await drawer.getByRole('link', { name, exact: typeof name === 'string' }).click();
+    await expect(drawer).toHaveCount(0);
+  }
+};
+
 // Chaque projet commence sans campagne courante, même après un parcours précédent échoué.
 // Cette préparation utilise uniquement l'API et la base éphémère contrôlée ci-dessus.
 test.beforeEach(async ({ request }) => {
@@ -74,16 +86,24 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   const campaign = 'Campagne ' + suffix;
   const deviceLabel = 'Appareil de recette ' + suffix;
   await signIn(page, adminLogin, password);
-  await expect(page.getByRole('heading', { name: 'Vue d’ensemble', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Tableau de bord général', exact: true }),
+  ).toBeVisible();
+  if (info.project.name === 'chrome-mobile') {
+    await page.getByRole('button', { name: 'Ouvrir le menu', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Menu de navigation' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Menu de navigation' })).toHaveCount(0);
+  }
 
-  await page.getByRole('link', { name: 'Installer SUIVI', exact: true }).click();
+  await navigation(page, 'Installer SUIVI');
   await page.getByLabel('Nom de l’appareil').fill(deviceLabel);
   await page.getByRole('button', { name: 'Enregistrer le nom', exact: true }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'nom de l’appareil est enregistré' }),
   ).toBeVisible();
 
-  await page.getByRole('link', { name: 'Départements', exact: true }).click();
+  await navigation(page, 'Départements');
   await page.getByRole('button', { name: 'Ajouter un département' }).click();
   let dialog = page.getByRole('dialog');
   await dialog.getByLabel(/^Nom/).fill(department);
@@ -91,7 +111,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await dialog.getByRole('button', { name: 'Enregistrer', exact: true }).click();
   await expect(page.getByRole('cell', { name: department, exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Responsables', exact: true }).click();
+  await navigation(page, 'Responsables');
   await page.getByRole('button', { name: 'Ajouter un responsable' }).click();
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(/^Identifiant unique/).fill(login);
@@ -107,7 +127,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   const initialPassword = await page.getByRole('dialog').locator('dd').nth(1).innerText();
   await page.getByRole('button', { name: 'J’ai remis les accès, fermer' }).click();
 
-  await page.getByRole('link', { name: 'Objectifs', exact: true }).click();
+  await navigation(page, 'Objectifs');
   await page.getByRole('button', { name: 'Créer une campagne', exact: true }).click();
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(/^Nom de la campagne/).fill(campaign);
@@ -149,7 +169,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await expect(page.getByRole('alert')).toContainText(
     'Cette page est réservée au Super Administrateur.',
   );
-  await page.getByRole('link', { name: /^Notifications/ }).click();
+  await navigation(page, /^Notifications/);
   await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Mot de passe modifié', exact: true }),
@@ -160,7 +180,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
     .click();
   await expect(page.getByText('0 notification non lue', { exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Membres', exact: true }).click();
+  await navigation(page, 'Membres');
   await page.getByRole('button', { name: 'Ajouter un membre' }).click();
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(/^Numéro de membre/).fill('NUM-' + suffix);
@@ -169,7 +189,15 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await dialog.getByLabel(/^Contact/).fill('Contact de recette');
   await dialog.getByRole('button', { name: 'Enregistrer', exact: true }).click();
   await expect(page.getByRole('cell', { name: new RegExp('Membre ' + suffix) })).toBeVisible();
-  await page.getByRole('link', { name: 'Encaissements', exact: true }).click();
+  if (info.project.name !== 'chrome-mobile') {
+    await page.getByRole('searchbox', { name: 'Rechercher un membre', exact: true }).fill(member);
+    await page.getByRole('button', { name: 'Lancer la recherche', exact: true }).click();
+    await expect(page.getByRole('searchbox', { name: 'Rechercher', exact: true })).toHaveValue(
+      member,
+    );
+    await expect(page.getByRole('cell', { name: new RegExp('Membre ' + suffix) })).toBeVisible();
+  }
+  await navigation(page, 'Encaissements');
   await page.getByRole('button', { name: 'Enregistrer un encaissement' }).click();
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(/^Membre \*/).selectOption({ label: 'NUM-' + suffix + ' · ' + member });
@@ -181,18 +209,26 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await expect(
     page.getByRole('status').filter({ hasText: 'Encaissement validé par le serveur.' }),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'Tableau de bord', exact: true }).click();
+  await navigation(page, 'Tableau de bord');
   await expect(page.getByText('120,00 %', { exact: true })).toBeVisible();
-  const dimensions = await page.evaluate(() => ({
-    viewport: innerWidth,
-    content: document.documentElement.scrollWidth,
-  }));
+  await page.getByText('Voir les montants par semaine', { exact: true }).click();
+  await expect(page.locator('.chart-details')).toContainText('12\u202f000 FCFA');
+  await page.getByText('Voir les montants par semaine', { exact: true }).click();
+  const dimensions = await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    return { viewport: innerWidth, content: document.documentElement.scrollWidth };
+  });
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
   await page.screenshot({ path: info.outputPath('dashboard.png'), fullPage: true });
   await page.getByRole('button', { name: 'Se déconnecter', exact: true }).click();
 
   await signIn(page, adminLogin, password);
-  await page.getByRole('link', { name: 'Encaissements', exact: true }).click();
+  await expect(
+    page.getByRole('progressbar', { name: 'Progression de l’objectif global' }),
+  ).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: info.outputPath('admin-dashboard.png'), fullPage: true });
+  await navigation(page, 'Encaissements');
   const paymentRow = page.getByRole('row').filter({ hasText: member });
   await paymentRow.getByRole('button', { name: 'Corriger', exact: true }).click();
   dialog = page.getByRole('dialog');
@@ -209,8 +245,10 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await expect(page.getByRole('dialog')).toContainText('Montant vérifié sur le reçu de recette');
   await page.getByRole('button', { name: 'Fermer la fenêtre' }).click();
 
-  await page.getByRole('link', { name: /^Notifications/ }).click();
-  await page.getByRole('searchbox', { name: 'Rechercher' }).fill('Encaissement annulé');
+  await navigation(page, /^Notifications/);
+  await page
+    .getByRole('searchbox', { name: 'Rechercher', exact: true })
+    .fill('Encaissement annulé');
   const notice = page
     .getByRole('article')
     .filter({ has: page.getByRole('heading', { name: 'Encaissement annulé', exact: true }) })
@@ -219,7 +257,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await notice.getByRole('button', { name: /Marquer comme lue/ }).click();
   await expect(notice).toContainText('Avertissement · Lue');
   await page.screenshot({ path: info.outputPath('notifications.png'), fullPage: true });
-  await page.getByRole('link', { name: 'Journal d’audit', exact: true }).click();
+  await navigation(page, 'Journal d’audit');
   await page
     .getByRole('combobox', { name: 'Action', exact: true })
     .selectOption('PAYMENT_CORRECTED');
@@ -243,7 +281,7 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   await page.screenshot({ path: info.outputPath('audit.png'), fullPage: true });
   await page.getByRole('button', { name: 'Fermer la fenêtre' }).click();
 
-  await page.getByRole('link', { name: 'Objectifs', exact: true }).click();
+  await navigation(page, 'Objectifs');
   await page
     .getByRole('article')
     .filter({ hasText: campaign })
@@ -252,6 +290,13 @@ test('parcours complet Super Administrateur et Responsable avec données Postgre
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(/^Statut/).selectOption('CLOSED');
   await dialog.getByLabel(/^Justification/).fill('Fin du parcours de recette navigateur');
+  const closingResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.startsWith('/api/v1/objectives/') &&
+      response.request().method() === 'PATCH',
+    { timeout: 35000 },
+  );
   await dialog.getByRole('button', { name: 'Confirmer les modifications' }).click();
+  expect((await closingResponse).status()).toBe(200);
   await expect(page.getByRole('article').filter({ hasText: campaign })).toContainText('Clôturée');
 });

@@ -44,6 +44,7 @@ export class DashboardService {
             progress: null,
             departmentTotal: '0',
             weekTotal: '0',
+            weeklyCollections: [],
             departments: [],
             members: [],
             recentPayments: [],
@@ -67,6 +68,12 @@ export class DashboardService {
         const memberRows = await tx.$queryRaw<{ id: string; name: string; totalAmount: string }[]>(
           Prisma.sql`SELECT b.member_id AS id,max(p.member_label_snapshot) AS name,sum(b.effective_amount)::text AS "totalAmount" FROM payment_balances b JOIN payments p ON p.id=b.id WHERE b.objective_id=${objectiveId}::uuid AND b.status='VALIDATED' ${deptFilter} GROUP BY b.member_id ORDER BY sum(b.effective_amount) DESC,b.member_id LIMIT 10`,
         );
+        const weeklyCollections = await tx.$queryRaw<
+          { id: string; number: number; startsOn: Date; totalAmount: string }[]
+        >(Prisma.sql`SELECT w.id,w.number,w.starts_on AS "startsOn",coalesce(sum(b.effective_amount),0)::text AS "totalAmount"
+          FROM collection_weeks w LEFT JOIN payment_balances b
+          ON b.collection_week_id=w.id AND b.objective_id=${objectiveId}::uuid AND b.status='VALIDATED' ${deptFilter}
+          WHERE w.objective_id=${objectiveId}::uuid GROUP BY w.id,w.number,w.starts_on ORDER BY w.number`);
         const weekTotal = week
           ? await tx.$queryRaw<{ total: string }[]>(
               Prisma.sql`SELECT coalesce(sum(b.effective_amount),0)::text AS total FROM payment_balances b WHERE b.objective_id=${objectiveId}::uuid AND b.collection_week_id=${week.id}::uuid AND b.status='VALIDATED' ${deptFilter}`,
@@ -86,6 +93,7 @@ export class DashboardService {
             .reduce((sum, row) => sum + BigInt(row.totalAmount), 0n)
             .toString(),
           weekTotal: weekTotal[0]?.total ?? '0',
+          weeklyCollections,
           departments,
           members: memberRows,
           recentPayments: recent.map(paymentView),

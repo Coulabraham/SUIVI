@@ -1,6 +1,6 @@
 # Contrats REST prévisionnels
 
-Préfixe : **/api/v1**. Ce document conserve la conception initiale, y compris les modules futurs. Pour les routes, DTO et conventions effectivement livrés en phases 4 à 9, consulter [l'API métier actuelle](MODULES_METIER.md) et [OpenAPI](openapi.json).
+Préfixe : **/api/v1**. Ce document conserve la conception initiale, y compris les modules futurs. Pour les routes, DTO et conventions effectivement livrés, consulter [l'API métier actuelle](MODULES_METIER.md) et [OpenAPI](openapi.json).
 
 ## 1. Conventions communes
 

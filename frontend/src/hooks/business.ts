@@ -14,9 +14,14 @@ export const statusOptions = [
   { value: 'ACTIVE', label: 'Actif' },
   { value: 'INACTIVE', label: 'Désactivé' },
 ];
-export function useList<T>(endpoint: string, extra?: Record<string, string>, refetchInterval = 0) {
+export function useList<T>(
+  endpoint: string,
+  extra?: Record<string, string>,
+  refetchInterval = 0,
+  initialSearch = '',
+) {
   const scope = useAuthScope();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [page, setPage] = useState(1);
   const query = useQuery({
     queryKey: [endpoint, scope, search, page, extra],

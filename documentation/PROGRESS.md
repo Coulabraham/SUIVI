@@ -1,10 +1,12 @@
 # Avancement de SUIVI
 
-Dernière mise à jour : 14 novembre 2026.
+Dernière mise à jour : 15 novembre 2026.
 
 ## État général
 
-Évolution demandée le 14 novembre : première ouverture avec choix Administrateur/Responsable, inscription initiale par e-mail, session unique et champ piège d'authentification. Implémentation testée : **149 tests distincts validés** (18 Jest, 33 Vitest/RTL, 83 PostgreSQL/API, 15 Playwright), avec reprises ciblées précisées dans le [bilan dédié](CONNEXION_ET_SESSIONS.md). Les mises à jour PWA sont vérifiées dans une fenêtre mobile et deux onglets desktop ; les deux onglets de l'émulation mobile restent non qualifiés. Les choix d'autorisation privée hors ligne restent ouverts.
+Refonte visuelle livrée le 15 novembre : identité bleue, connexion illustrée, menu responsive, recherche réelle et graphiques hebdomadaires. **161 tests distincts réussis ; un scénario PWA à deux onglets desktop en échec.** Les parcours métier sur ordinateur, mobile et tablette passent. Voir les [fichiers, commandes, résultats et limites](REFONTE_INTERFACE.md).
+
+Livraison précédente du 14 novembre : première ouverture avec choix Administrateur/Responsable, inscription initiale par e-mail, session unique et champ piège d'authentification. Son bilan historique de **149 tests distincts validés** (18 Jest, 33 Vitest/RTL, 83 PostgreSQL/API, 15 Playwright) est conservé dans le [compte rendu dédié](CONNEXION_ET_SESSIONS.md). Le résultat actuel de mise à jour à deux onglets desktop est en échec ; deux onglets dans l'émulation mobile restent non qualifiés. Les choix d'autorisation privée hors ligne restent ouverts.
 
 | Phase | État |
 |---|---|
@@ -12,7 +14,7 @@ Dernière mise à jour : 14 novembre 2026.
 | 2 — Initialisation | Terminée : applications et PostgreSQL démarrent ; tests du socle réussis ; limite faible de l'outillage documentée |
 | 3 — Base de données | Socle terminé : 17 modèles ; cinq migrations actuelles appliquées et client Prisma opérationnel |
 | 4 — Backend | Périmètre métier des phases 4 à 10 du cahier joint testé ; synchronisation et rapports restent à venir |
-| 5 — Frontend | Pages métier reliées aux API ; recette Chrome desktop/mobile réussie dans ce périmètre |
+| 5 — Frontend | Pages métier reliées aux API ; refonte bleue et parcours métier ordinateur/mobile/tablette vérifiés |
 | 6 — PWA et offline | En cours : première partie installable et fondations du stockage testées ; données privées hors connexion non activées |
 | 7 — Tests et sécurité | Qualification globale à venir ; tests progressifs du socle et de la base exécutés |
 | 8 — Finalisation | Non commencée |
@@ -196,3 +198,15 @@ Les restrictions métier ouvertes, l'absence de mode hors ligne et les travaux r
 - Q02 (durée autorisée hors ligne) demandée explicitement à l'utilisateur : 72 h, 24 h ou 7 jours. Réponse toujours attendue ; aucun choix automatique.
 - **131 tests distincts réussis** : 18 Jest, 25 Vitest/RTL, 76 PostgreSQL/API et 12 Playwright. Deux anomalies de première recette corrigées : renommage d'appareil connu et rechargement explicite après mise à jour ; la saisie d'un autre onglet reste préservée. La création locale ne peut pas écraser un paiement existant.
 - [Compte rendu de cette livraison](PHASE_11.md). Cette partie ne suffit pas à déclarer la phase 11 entière terminée. Prochaine étape : autorisation hors ligne bornée et préparation chiffrée du département, puis synchronisation par lots.
+
+## Refonte responsive — livraison du 15 novembre
+
+- Modèle visuel fourni repris dans l'application existante : logo, vagues, connexion, typographie, menu bleu, navigation mobile et tableaux de bord réels.
+- Recherche par nom complet et agrégat hebdomadaire ajoutés côté serveur, avec isolation départementale vérifiée. Aucun schéma, historique financier ou compte réel réinitialisé.
+- Fichiers et commandes détaillés dans le [bilan de refonte](REFONTE_INTERFACE.md) ; décisions ADR-58 à ADR-63 consignées dans le [registre](DECISIONS.md).
+- Résultats : 18 Jest serveur, 41 Vitest/RTL et 85 PostgreSQL/API réussis. Dernière recette Playwright : 17 réussis sur 18, commande terminée avec code 1. Tous les parcours métier passent ; l'attente d'une mise à jour PWA dans deux onglets desktop échoue encore.
+- Corrections : couleur de graphique strictement typée, recherche multichamp, compteur indisponible explicite, sélecteur de recherche non ambigu et attente du résultat serveur lors de la clôture.
+- TypeScript strict, compilation, ESLint et Prettier vérifiés. Captures des trois formats inspectées, contrôle de débordement horizontal réussi et cahier source inchangé.
+- Aperçu local démarré ; disponibilité PostgreSQL et manifest bleu vérifiés sur http://localhost:4173/connexion. La création du premier administrateur reste ouverte au contrôle.
+- Publication GitHub et lancement explicitement demandés le 15 novembre. Configuration secrète, caches, données et fichiers de recette exclus de Git.
+- À poursuivre : isoler l'échec PWA à deux onglets, puis autorisation privée hors ligne Q02 et synchronisation. Cette livraison ne déclare pas l'application complète prête pour la production.

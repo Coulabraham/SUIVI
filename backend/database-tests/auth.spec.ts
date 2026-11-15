@@ -546,6 +546,23 @@ describe('Phase 7 — membres et isolation', () => {
       .send({ memberNumber: 'INTERDIT', firstName: 'Autre', lastName: 'Test', departmentId: deptB })
       .expect(403);
   });
+  it('recherche le nom complet dans les deux sens sans sortir du département autorisé', async () => {
+    for (const search of ['awa test', 'Test   AWA', 'API-A', 'Contact A']) {
+      const result = (
+        await apiRequest('get', 'members?q=' + encodeURIComponent(search), managerTokenA).expect(
+          200,
+        )
+      ).body.data;
+      expect(result.total).toBe(1);
+      expect(result.items.map((row: { id: string }) => row.id)).toEqual([memberA]);
+    }
+    const foreign = (await apiRequest('get', 'members?q=Binta%20Test', managerTokenA).expect(200))
+      .body.data;
+    expect(foreign.total).toBe(0);
+    const own = (await apiRequest('get', 'members?q=Binta%20Test', managerTokenB).expect(200)).body
+      .data;
+    expect(own.items.map((row: { id: string }) => row.id)).toEqual([memberB]);
+  });
   it('refuse les identifiants étrangers dans les URL, filtres et corps', async () => {
     await apiRequest('get', 'members/' + memberB, managerTokenA).expect(404);
     await apiRequest('get', 'members?departmentId=' + deptB, managerTokenA).expect(403);
@@ -747,6 +764,28 @@ describe('Phase 9 — objectifs et tableaux de bord', () => {
     const admin = (await apiRequest('get', 'dashboard').expect(200)).body.data;
     expect(admin.departments).toHaveLength(2);
     expect(admin.counts.activeMembers).toBe(2);
+  });
+  it('agrège les semaines avec montants exacts et isole les contributions de chaque département', async () => {
+    const a = (await apiRequest('get', 'dashboard', managerTokenA).expect(200)).body.data;
+    const b = (await apiRequest('get', 'dashboard', managerTokenB).expect(200)).body.data;
+    const admin = (await apiRequest('get', 'dashboard').expect(200)).body.data;
+    const total = (rows: { totalAmount: string }[]) =>
+      rows.reduce((sum, row) => sum + BigInt(row.totalAmount), 0n);
+    expect(a.weeklyCollections.length).toBeGreaterThan(50);
+    expect(a.weeklyCollections.find((row: { id: string }) => row.id === weekId).totalAmount).toBe(
+      '8000',
+    );
+    expect(total(a.weeklyCollections)).toBe(8000n);
+    expect(total(b.weeklyCollections)).toBe(0n);
+    expect(total(admin.weeklyCollections)).toBe(BigInt(admin.departmentTotal));
+    expect(
+      a.weeklyCollections.every(
+        (row: { number: number; startsOn: string; totalAmount: string }, index: number) =>
+          row.number === index + 1 &&
+          /^\d{4}-\d{2}-\d{2}T/.test(row.startsOn) &&
+          /^\d+$/.test(row.totalAmount),
+      ),
+    ).toBe(true);
   });
   it('refuse une deuxième campagne active et suspend/reprend sans perte', async () => {
     const objective = (await apiRequest('get', 'objectives/' + objectiveId)).body.data;

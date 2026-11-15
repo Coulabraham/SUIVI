@@ -21,13 +21,23 @@ export class MembersService {
   constructor(private readonly business: BusinessService) {}
   async list(actor: Principal, query: PageDto) {
     const departmentId = this.business.scope(actor, query.departmentId);
+    const terms = query.q?.split(/\s+/) ?? [];
+    const nameSearch: Prisma.MemberWhereInput[] = terms.map((term) => ({
+      OR: [
+        { firstName: { contains: term, mode: 'insensitive' } },
+        { lastName: { contains: term, mode: 'insensitive' } },
+      ],
+    }));
     const where: Prisma.MemberWhereInput = {
       ...(departmentId ? { departmentId } : {}),
       ...(query.q
         ? {
-            OR: ['firstName', 'lastName', 'memberNumber', 'contact'].map((field) => ({
-              [field]: { contains: query.q, mode: 'insensitive' },
-            })),
+            OR: [
+              ...['firstName', 'lastName', 'memberNumber', 'contact'].map((field) => ({
+                [field]: { contains: query.q, mode: 'insensitive' },
+              })),
+              ...(terms.length > 1 ? [{ AND: nameSearch }] : []),
+            ],
           }
         : {}),
     };

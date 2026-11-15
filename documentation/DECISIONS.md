@@ -91,7 +91,20 @@ Date initiale : 12 novembre 2026. L'utilisateur a validé la conception généra
 | ADR-54 | Inscription du premier administrateur seulement, même verrou PostgreSQL que le bootstrap terminal | Interdire une deuxième initialisation concurrente et ne pas rouvrir la création après désactivation |
 | ADR-55 | Nouvelle connexion prioritaire ; révocation transactionnelle de toutes les sessions antérieures sous verrou utilisateur | Une session active par compte, y compris entre deux connexions simultanées ; refus immédiat des anciens JWT/refresh côté API |
 | ADR-56 | Champ website vide obligatoire, masqué pour l'utilisateur, contrôlé par Zod et class-validator | Compléter la limitation des tentatives sans prétendre bloquer tous les robots ; aucun rôle accordé par un choix d'interface |
-| ADR-57 | Georgia/Cambria pour les titres, Segoe UI/system-ui pour les textes et formulaires | Hiérarchie visuelle distincte et fonctionnement sans dépendance à un service de polices distant |
+| ADR-57 | Georgia/Cambria pour les titres, Segoe UI/system-ui pour les textes et formulaires | Choix initial remplacé par ADR-58 après réception du modèle visuel utilisateur |
+
+## Refonte selon le modèle visuel du 14 novembre
+
+| ID | Décision | Motif et limites |
+|---|---|---|
+| ADR-58 | Identité bleue et blanche, logo SVG local, titres Segoe UI Variable Display gras et textes Segoe UI/system-ui | Reprendre le modèle fourni, conserver une hiérarchie lisible sans téléchargement de polices ; remplace ADR-57 |
+| ADR-59 | Menu latéral dès 768 px et menu modal/navigation basse sur mobile | Adapter les vrais parcours métier à la tablette et au téléphone ; aucun lien vers une fonctionnalité absente |
+| ADR-60 | Séries hebdomadaires calculées sur la projection financière SQL dans la transaction dashboard existante | Inclure corrections, annulations et semaines à zéro ; filtre départemental côté serveur ; montants exacts, géométrie normalisée seulement |
+| ADR-61 | Mémorisation facultative du seul identifiant, jamais du secret | Donner un sens précis à l'option du modèle ; ne change ni la durée de session ni la révocation sur nouvelle connexion |
+| ADR-62 | Recherche membre par prénom et nom combinés, dans les deux ordres, avec conservation des recherches par numéro/contact | La recette du champ de recherche supérieur a révélé qu'une recherche multichamp était nécessaire ; filtre départemental obligatoire conservé autour de l'ensemble des critères |
+| ADR-63 | Amorçage PostgreSQL et budget global navigateur bornés séparément des assertions | Expiration initdb à trois minutes observée sous Windows : limite à dix minutes pour cette initialisation et 90 secondes pour pg_ctl. Après expiration du lot navigateur à dix minutes, son budget global passe à vingt minutes ; délais individuels des scénarios/assertions, authentification SCRAM et permissions conservés |
+
+## Décisions métier restant ouvertes
 
 Les questions Q01 à Q03 ont été présentées pendant l'analyse ; aucune réponse n'a été présumée. Les propositions suivantes permettent de discuter un résultat concret sans inventer les règles définitives.
 
@@ -140,3 +153,5 @@ Les questions Q01 à Q03 ont été présentées pendant l'analyse ; aucune répo
 | 2026-11-13 | Demande de pousser vers github.com/Coulabraham/SUIVI | Publication du code et de la documentation autorisée sur ce dépôt public ; configuration secrète, données locales et résultats temporaires exclus |
 | 2026-11-13 | Nouvelle réponse « ok continue » après publication de la phase 10 | Partie installable et fondations du stockage de phase 11 poursuivies ; question précise sur Q02 présentée, durée toujours non confirmée |
 | 2026-11-14 | Nouvelle instruction « continue » | Qualification reprise, anomalies de nom d'appareil et de cycle de mise à jour corrigées ; aucune réponse à Q02 présumée |
+| 2026-11-14 | Modèle visuel responsive bleu fourni par l'utilisateur | Refonte des écrans existants autorisée, avec identité locale SVG, navigation adaptée et données réelles ; aucune règle financière ou d'autorisation hors ligne modifiée |
+| 2026-11-15 | Demande explicite de continuer, pousser sur GitHub et lancer | Publication de la refonte et démarrage local autorisés ; l'échec PWA à deux onglets desktop reste consigné et n'est pas déclaré résolu |

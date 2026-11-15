@@ -58,6 +58,10 @@ Les modifications de ressources utilisent leur version actuelle. HTTP 409 impose
 
 ## Réponses et erreurs
 
+Le tableau de bord retourne aussi `weeklyCollections` : identifiant et numéro de semaine, `startsOn` ISO et `totalAmount` sous forme de chaîne entière FCFA. Toutes les semaines de la campagne sont présentes, y compris celles sans versement. Les montants tiennent compte des corrections et excluent les paiements annulés ; le responsable reçoit uniquement la série de son département. Ce champ permet les graphiques responsive et la consultation des valeurs exactes ; voir le [bilan de refonte](../REFONTE_INTERFACE.md).
+
+La recherche `GET /members?q=...` conserve la recherche par prénom, nom, numéro et contact. Elle accepte aussi un prénom et un nom combinés dans les deux ordres, sans distinction de casse et avec plusieurs espaces. Tous les critères restent sous le filtre de département de l'utilisateur.
+
 Le succès contient `data`. Une liste contient `data.items`, `data.total`, `data.page` et `data.pageSize`. Les dates sont des chaînes ISO. Les erreurs contiennent `error.code`, `error.message` et `error.requestId` ; les requêtes reçoivent aussi X-Request-Id. Les valeurs SQL, hashes, mots de passe et piles internes ne sont pas exposés.
 
 | HTTP | Signification |

@@ -6696,6 +6696,31 @@
           "archivedMembers"
         ]
       },
+      "WeeklyCollectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "number"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalAmount": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "startsOn",
+          "totalAmount"
+        ]
+      },
       "ContributionDto": {
         "type": "object",
         "properties": {
@@ -6745,6 +6770,12 @@
           "weekTotal": {
             "type": "string"
           },
+          "weeklyCollections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklyCollectionDto"
+            }
+          },
           "departments": {
             "type": "array",
             "items": {
@@ -6770,6 +6801,7 @@
           "progress",
           "departmentTotal",
           "weekTotal",
+          "weeklyCollections",
           "departments",
           "members",
           "recentPayments"

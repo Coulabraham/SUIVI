@@ -162,12 +162,19 @@ class ContributionDto {
   @ApiProperty() name!: string;
   @ApiProperty({ type: String }) totalAmount!: string;
 }
+class WeeklyCollectionDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() number!: number;
+  @ApiProperty({ format: 'date-time' }) startsOn!: string;
+  @ApiProperty({ type: String }) totalAmount!: string;
+}
 export class DashboardDto implements DashboardView {
   @ApiProperty({ type: CountsDto }) counts!: CountsDto;
   @ApiProperty({ type: ObjectiveDto, nullable: true }) objective!: ObjectiveDto | null;
   @ApiProperty({ type: ProgressDto, nullable: true }) progress!: ProgressDto | null;
   @ApiProperty({ type: String }) departmentTotal!: string;
   @ApiProperty({ type: String }) weekTotal!: string;
+  @ApiProperty({ type: [WeeklyCollectionDto] }) weeklyCollections!: WeeklyCollectionDto[];
   @ApiProperty({ type: [ContributionDto] }) departments!: ContributionDto[];
   @ApiProperty({ type: [ContributionDto] }) members!: ContributionDto[];
   @ApiProperty({ type: [PaymentDto] }) recentPayments!: PaymentDto[];

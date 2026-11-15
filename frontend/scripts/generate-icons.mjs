@@ -16,7 +16,7 @@ try {
       deviceScaleFactor: 1,
     });
     await page.setContent(
-      `<style>html,body{margin:0;background:#103e38;width:100%;height:100%}svg{display:block;width:100%;height:100%}</style>${svg}`,
+      `<style>html,body{margin:0;background:#0758bd;width:100%;height:100%}svg{display:block;width:100%;height:100%}</style>${svg}`,
     );
     await page.screenshot({
       path: fileURLToPath(new URL(`${name}.png`, folder)),

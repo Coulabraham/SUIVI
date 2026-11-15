@@ -17,6 +17,9 @@ import { useAuthStore } from '../../stores/auth';
 import { useConnectivityStore } from '../../stores/connectivity';
 import { readDeviceLabel } from '../../pwa/storage';
 import { Honeypot } from './Honeypot';
+import { Brand, AuthWaves, TeamIllustration } from '../../components/Brand';
+import { Icon } from '../../components/Icon';
+import { PasswordInput } from '../../components/PasswordInput';
 
 const trap = z
   .string()
@@ -75,9 +78,18 @@ function SignInForm({ portal }: { portal: AuthPortal }) {
   const online = useConnectivityStore((s) => s.online);
   const complete = useOpenSession();
   const [error, setError] = useState('');
+  const preferenceKey = 'suivi.remembered-login.' + portal;
+  const [remembered] = useState(() => {
+    try {
+      return localStorage.getItem(preferenceKey)?.slice(0, 100) ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const [remember, setRemember] = useState(!!remembered);
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { website: '', login: '', password: '' },
+    defaultValues: { website: '', login: remembered, password: '' },
   });
   return (
     <form
@@ -85,6 +97,8 @@ function SignInForm({ portal }: { portal: AuthPortal }) {
       onSubmit={form.handleSubmit(async (values) => {
         setError('');
         try {
+          if (remember) localStorage.setItem(preferenceKey, values.login);
+          else if (remembered) localStorage.removeItem(preferenceKey);
           const input: LoginInput = {
             ...values,
             portal,
@@ -101,22 +115,32 @@ function SignInForm({ portal }: { portal: AuthPortal }) {
       <Honeypot field={form.register('website')} />
       <label>
         {manager ? 'Identifiant' : 'Adresse e-mail ou identifiant'}
-        <input
-          autoComplete="username"
-          autoCapitalize="none"
-          spellCheck={false}
-          aria-invalid={!!form.formState.errors.login}
-          {...form.register('login')}
-        />
+        <span className="identity-control">
+          <Icon name="user" className="input-symbol" />
+          <input
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            aria-invalid={!!form.formState.errors.login}
+            {...form.register('login')}
+          />
+        </span>
       </label>
       <label>
         {manager ? 'Code de connexion' : 'Mot de passe'}
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="current-password"
           aria-invalid={!!form.formState.errors.password}
-          {...form.register('password')}
+          field={form.register('password')}
         />
+      </label>
+      <label className="remember-control">
+        <input
+          type="checkbox"
+          checked={remember}
+          onChange={(event) => setRemember(event.target.checked)}
+        />
+        Mémoriser mon identifiant
       </label>
       <Errors errors={form.formState.errors} serverError={error} />
       <button
@@ -124,6 +148,7 @@ function SignInForm({ portal }: { portal: AuthPortal }) {
         disabled={form.formState.isSubmitting || !online}
       >
         {form.formState.isSubmitting ? 'Connexion…' : 'Se connecter'}
+        <Icon name="arrow" className="h-4 w-4" />
       </button>
       <p className="text-xs leading-6 text-stone-500">
         {manager
@@ -193,12 +218,11 @@ function RegistrationForm() {
       </label>
       <label>
         Mot de passe
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="new-password"
           aria-label="Mot de passe"
           aria-describedby="registration-password-hint"
-          {...form.register('password')}
+          field={form.register('password')}
         />
         <span id="registration-password-hint" className="text-xs font-normal text-stone-500">
           Au moins 12 caractères. Une phrase longue est recommandée.
@@ -206,7 +230,7 @@ function RegistrationForm() {
       </label>
       <label>
         Confirmer le mot de passe
-        <input type="password" autoComplete="new-password" {...form.register('confirmation')} />
+        <PasswordInput autoComplete="new-password" field={form.register('confirmation')} />
       </label>
       <Errors errors={form.formState.errors} serverError={error} />
       <button
@@ -283,131 +307,121 @@ export function LoginPage() {
     setParams(next);
   };
   return (
-    <div className="auth-layout">
-      <section className="auth-introduction">
-        <p className="eyebrow">CHAQUE CONTRIBUTION COMPTE</p>
-        <h2>
-          Ensemble,
-          <br />
-          faisons avancer
-          <br />
-          <em>nos projets.</em>
-        </h2>
-        <p className="mt-6 max-w-sm text-base leading-8 text-stone-600">
-          Un espace commun pour suivre les cotisations, accompagner vos membres et voir votre
-          objectif prendre forme.
-        </p>
-        <div className="auth-promise">
-          <span aria-hidden="true">✓</span>
-          <div>
-            <strong>Un suivi clair</strong>
-            <p>Vos membres, vos encaissements et votre progression au même endroit.</p>
-          </div>
-        </div>
-        <div className="auth-promise">
-          <span aria-hidden="true">✓</span>
-          <div>
-            <strong>Des accès personnels</strong>
-            <p>Un compte individuel et une seule session active à la fois.</p>
-          </div>
-        </div>
-        <p className="mt-10 text-xs tracking-wide text-stone-500">
-          COTISATIONS EN FCFA · COLLECTE HEBDOMADAIRE
-        </p>
-      </section>
-      <section className="auth-card" aria-labelledby="auth-title">
-        <p className="eyebrow">VOTRE ESPACE SÉCURISÉ</p>
-        <h1 id="auth-title" className="auth-title">
-          {portal === 'SUPER_ADMIN'
-            ? 'Espace administrateur'
-            : portal === 'MANAGER'
-              ? 'Espace responsable'
-              : 'Bienvenue dans SUIVI'}
-        </h1>
-        {(passwordUpdated || params.has('mot-de-passe-modifie')) && (
-          <p role="status" className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
-            Mot de passe modifié. Reconnectez-vous avec votre nouveau mot de passe.
+    <div className="auth-scene">
+      <div className="auth-layout">
+        <section className="auth-introduction">
+          <Brand className="brand-auth" />
+          <p className="auth-tagline">
+            Gestion des cotisations
+            <br />
+            et encaissements
           </p>
-        )}
-        {!online && (
-          <p role="status" className="notice mt-4">
-            Une connexion au serveur est nécessaire pour vous authentifier. Les données de votre
-            département restent protégées.
+          <TeamIllustration />
+          <p className="team-caption">
+            Ensemble pour
+            <br />
+            une gestion transparente
           </p>
-        )}
-        {!portal ? (
-          <>
-            <p className="mt-3 text-sm leading-6 text-stone-500">
-              Choisissez votre espace pour commencer.
+        </section>
+        <section className="auth-card" aria-labelledby="auth-title">
+          <p className="eyebrow">{portal ? 'BON RETOUR !' : 'CHAQUE CONTRIBUTION COMPTE'}</p>
+          <h1 id="auth-title" className="auth-title">
+            {portal === 'SUPER_ADMIN'
+              ? 'Espace administrateur'
+              : portal === 'MANAGER'
+                ? 'Espace responsable'
+                : 'Bienvenue dans SUIVI'}
+          </h1>
+          {(passwordUpdated || params.has('mot-de-passe-modifie')) && (
+            <p role="status" className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+              Mot de passe modifié. Reconnectez-vous avec votre nouveau mot de passe.
             </p>
-            <div className="mt-7 grid gap-4">
+          )}
+          {!online && (
+            <p role="status" className="notice mt-4">
+              Une connexion au serveur est nécessaire pour vous authentifier. Les données de votre
+              département restent protégées.
+            </p>
+          )}
+          {!portal ? (
+            <>
+              <p className="mt-3 text-sm leading-6 text-stone-500">
+                Choisissez votre espace pour commencer.
+              </p>
+              <div className="mt-7 grid gap-4">
+                <button
+                  type="button"
+                  className="role-choice"
+                  aria-label="Administrateur"
+                  onClick={() => choose('admin')}
+                >
+                  <span className="role-monogram" aria-hidden="true">
+                    <Icon name="shield" />
+                  </span>
+                  <span>
+                    <strong>Administrateur</strong>
+                    <span>Créer votre compte ou piloter votre organisation.</span>
+                  </span>
+                  <span className="role-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="role-choice"
+                  aria-label="Responsable"
+                  onClick={() => choose('responsable')}
+                >
+                  <span className="role-monogram" aria-hidden="true">
+                    <Icon name="users" />
+                  </span>
+                  <span>
+                    <strong>Responsable</strong>
+                    <span>Accéder au suivi de votre département.</span>
+                  </span>
+                  <span className="role-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
               <button
                 type="button"
-                className="role-choice"
-                aria-label="Administrateur"
-                onClick={() => choose('admin')}
+                className="role-back mt-4 font-medium underline underline-offset-4"
+                onClick={() => choose(null)}
               >
-                <span className="role-monogram" aria-hidden="true">
-                  A
-                </span>
-                <span>
-                  <strong>Administrateur</strong>
-                  <span>Créer votre compte ou piloter votre organisation.</span>
-                </span>
-                <span className="role-arrow" aria-hidden="true">
-                  ↗
-                </span>
+                ← Changer d’espace
               </button>
-              <button
-                type="button"
-                className="role-choice"
-                aria-label="Responsable"
-                onClick={() => choose('responsable')}
-              >
-                <span className="role-monogram" aria-hidden="true">
-                  R
-                </span>
-                <span>
-                  <strong>Responsable</strong>
-                  <span>Accéder au suivi de votre département.</span>
-                </span>
-                <span className="role-arrow" aria-hidden="true">
-                  ↗
-                </span>
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="mt-4 text-sm font-medium text-emerald-800 underline underline-offset-4"
-              onClick={() => choose(null)}
-            >
-              ← Changer d’espace
-            </button>
-            {portal === 'SUPER_ADMIN' ? (
-              <AdminAccess />
-            ) : (
-              <>
-                <p className="mt-4 text-sm leading-6 text-stone-600">
-                  Connectez-vous avec les accès remis par votre administrateur.
-                </p>
-                <SignInForm portal="MANAGER" />
-              </>
-            )}
-          </>
-        )}
-        <p className="mt-6 border-t border-stone-100 pt-5 text-xs leading-6 text-stone-500">
-          Une nouvelle connexion ferme la session précédente sur vos autres appareils.
-        </p>
-        <Link
-          className="mt-3 inline-block text-xs text-stone-500 underline underline-offset-4"
-          to="/diagnostic"
-        >
-          Besoin d’aide pour vous connecter ?
-        </Link>
-      </section>
+              {portal === 'SUPER_ADMIN' ? (
+                <AdminAccess />
+              ) : (
+                <>
+                  <p className="mt-4 text-sm leading-6 text-stone-600">
+                    Connectez-vous avec les accès remis par votre administrateur.
+                  </p>
+                  <SignInForm portal="MANAGER" />
+                </>
+              )}
+            </>
+          )}
+          <div className="auth-security">
+            <Icon name="shield" />
+            Application sécurisée
+          </div>
+          <p className="auth-note mt-4">
+            Une nouvelle connexion ferme la session précédente sur vos autres appareils.
+          </p>
+          <Link
+            className="mt-3 inline-block text-xs text-stone-500 underline underline-offset-4"
+            to="/diagnostic"
+          >
+            Besoin d’aide pour vous connecter ?
+          </Link>
+        </section>
+      </div>
+      <AuthWaves />
     </div>
   );
 }

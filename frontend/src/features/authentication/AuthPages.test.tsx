@@ -48,6 +48,38 @@ beforeEach(() => {
 });
 
 describe('Authentification accessible et erreurs explicites', () => {
+  it('affiche puis masque le secret sans soumettre le formulaire', async () => {
+    mount('/connexion?espace=responsable');
+    const user = userEvent.setup();
+    const input = screen.getByLabelText('Code de connexion');
+    await user.type(input, 'secret-de-recette');
+    await user.click(screen.getByRole('button', { name: 'Afficher le mot de passe' }));
+    expect(input).toHaveAttribute('type', 'text');
+    expect(input).toHaveValue('secret-de-recette');
+    await user.click(screen.getByRole('button', { name: 'Masquer le mot de passe' }));
+    expect(input).toHaveAttribute('type', 'password');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+  it('mémorise uniquement l’identifiant sur demande et permet de le retirer', async () => {
+    vi.mocked(api.post).mockRejectedValue(new Error('Accès de recette refusé.'));
+    const view = mount('/connexion?espace=responsable');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Identifiant'), 'responsable.recette');
+    await user.type(screen.getByLabelText('Code de connexion'), 'secret-non-stocke');
+    await user.click(screen.getByLabelText('Mémoriser mon identifiant'));
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }));
+    await screen.findByRole('alert');
+    expect(localStorage.getItem('suivi.remembered-login.MANAGER')).toBe('responsable.recette');
+    expect(JSON.stringify({ ...localStorage })).not.toContain('secret-non-stocke');
+    view.unmount();
+    mount('/connexion?espace=responsable');
+    expect(screen.getByLabelText('Identifiant')).toHaveValue('responsable.recette');
+    await user.type(screen.getByLabelText('Code de connexion'), 'secret-non-stocke');
+    await user.click(screen.getByLabelText('Mémoriser mon identifiant'));
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }));
+    await screen.findByRole('alert');
+    expect(localStorage.getItem('suivi.remembered-login.MANAGER')).toBeNull();
+  });
   it('affiche le refus du serveur sans conserver les mots de passe', async () => {
     vi.mocked(api.post).mockRejectedValue(new Error('Identifiants invalides.'));
     mount('/connexion');

@@ -29,7 +29,9 @@ test('première ouverture, piège invisible et création du premier administrate
   await expect(page.getByRole('alert')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('premier-administrateur.png'), fullPage: true });
   await page.getByRole('button', { name: 'Créer mon compte administrateur' }).click();
-  await expect(page.getByRole('heading', { name: 'Vue d’ensemble', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Tableau de bord général', exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Se déconnecter', exact: true }).click();
   await page.getByRole('button', { name: 'Administrateur', exact: true }).click();
   await expect(page.getByLabel('Adresse e-mail ou identifiant')).toBeVisible();

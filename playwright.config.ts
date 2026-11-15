@@ -25,6 +25,17 @@ export default defineConfig({
       testIgnore: 'auth-setup.spec.ts',
       use: { ...devices['Pixel 7'], browserName: 'chromium', channel: 'chrome' },
     },
+    {
+      name: 'chrome-tablet',
+      dependencies: ['initialisation'],
+      testMatch: /(?:business|bootstrap)\.spec\.ts/,
+      use: {
+        browserName: 'chromium',
+        channel: 'chrome',
+        viewport: { width: 1024, height: 768 },
+        hasTouch: true,
+      },
+    },
   ],
   webServer: [
     {

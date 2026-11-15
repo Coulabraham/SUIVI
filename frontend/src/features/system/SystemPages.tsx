@@ -72,7 +72,7 @@ export function OverviewPage() {
           Environnement de développement
         </span>
       </div>
-      <section className="relative mb-7 overflow-hidden rounded-[1.4rem] bg-[#123e38] px-7 py-9 text-white sm:px-10 sm:py-11">
+      <section className="relative mb-7 overflow-hidden rounded-[1.4rem] bg-[#073673] px-7 py-9 text-white sm:px-10 sm:py-11">
         <div className="pointer-events-none absolute -right-12 -top-20 h-80 w-80 rounded-full border-[45px] border-white/5" />
         <div className="pointer-events-none absolute right-28 top-28 h-44 w-44 rounded-full border border-white/10" />
         <div className="relative max-w-xl">
@@ -90,13 +90,13 @@ export function OverviewPage() {
           </p>
           <Link
             to="/connexion"
-            className="mt-7 mr-3 inline-flex items-center gap-3 rounded-lg bg-[#e4edc9] px-5 py-3 text-sm font-semibold text-[#173b34] transition hover:bg-white"
+            className="mt-7 mr-3 inline-flex items-center gap-3 rounded-lg bg-[#e1eeff] px-5 py-3 text-sm font-semibold text-[#073674] transition hover:bg-white"
           >
             Accéder à mon espace <Icon name="arrow" />
           </Link>
           <Link
             to="/diagnostic"
-            className="mt-7 inline-flex items-center gap-3 rounded-lg bg-[#e4edc9] px-5 py-3 text-sm font-semibold text-[#173b34] transition hover:bg-white"
+            className="mt-7 inline-flex items-center gap-3 rounded-lg bg-[#e1eeff] px-5 py-3 text-sm font-semibold text-[#073674] transition hover:bg-white"
           >
             Consulter le diagnostic <Icon name="arrow" />
           </Link>
@@ -161,7 +161,7 @@ export function OverviewPage() {
             ],
           ].map(([number, title, description, status]) => (
             <div key={number} className="border-l-2 border-[#dce5d3] pl-4">
-              <span className="text-xs font-semibold text-[#729278]">
+              <span className="text-xs font-semibold text-[#4883c7]">
                 {number} · {status}
               </span>
               <h3 className="mt-2 text-sm font-semibold text-stone-800">{title}</h3>
@@ -238,7 +238,7 @@ export function DiagnosticPage() {
         href="/api/v1/docs"
         target="_blank"
         rel="noreferrer"
-        className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#1e675b] underline-offset-4 hover:underline"
+        className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#146ac9] underline-offset-4 hover:underline"
       >
         Ouvrir la documentation Swagger <Icon name="arrow" />
       </a>

@@ -114,18 +114,22 @@ try {
     await mkdir(cluster, { recursive: true });
     await writeFile(secretFile, password, { mode: 0o600, flag: 'wx' });
     try {
-      run(join(bin, 'initdb.exe'), [
-        '-D',
-        data,
-        '-U',
-        'suivi_test_bootstrap',
-        '--pwfile',
-        secretFile,
-        '--auth-host=scram-sha-256',
-        '--auth-local=scram-sha-256',
-        '--encoding=UTF8',
-        '--locale=C',
-      ]);
+      run(
+        join(bin, 'initdb.exe'),
+        [
+          '-D',
+          data,
+          '-U',
+          'suivi_test_bootstrap',
+          '--pwfile',
+          secretFile,
+          '--auth-host=scram-sha-256',
+          '--auth-local=scram-sha-256',
+          '--encoding=UTF8',
+          '--locale=C',
+        ],
+        { stdio: 'inherit', timeout: 600000 },
+      );
     } finally {
       await unlink(secretFile);
     }
@@ -140,7 +144,7 @@ try {
         `-h 127.0.0.1 -p ${port} -c timezone=UTC`,
         '-w',
         '-t',
-        '30',
+        '90',
         'start',
       ],
       { stdio: 'ignore' },
@@ -300,7 +304,7 @@ try {
           SUIVI_TEST_E2E_DATABASE_URL: urls.e2eApp,
         },
         stdio: 'inherit',
-        timeout: 600000,
+        timeout: 1200000,
       },
     );
   }
